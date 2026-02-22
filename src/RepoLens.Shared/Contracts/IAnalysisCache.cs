@@ -44,4 +44,10 @@ public class CachedAnalysis
     public required List<SymbolInfo> Symbols { get; init; }
     public required List<Models.FileInfo> Files { get; init; }
     public DateTime AnalyzedAtUtc { get; init; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// SHA-256 hashes keyed by relative file path.
+    /// Used by incremental re-analysis to detect changed files.
+    /// </summary>
+    public Dictionary<string, string> FileHashes { get; init; } = new();
 }

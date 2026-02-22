@@ -13,4 +13,10 @@ public interface IRepositoryDownloader
     /// to access private or organization repositories.
     /// </summary>
     Task<string> DownloadAsync(string repositoryUrl, CancellationToken cancellationToken = default, string? gitHubToken = null);
+
+    /// <summary>
+    /// Removes the locally cached download for a repository so the next
+    /// <see cref="DownloadAsync"/> call fetches fresh content.
+    /// </summary>
+    void ClearLocalCache(string repositoryUrl);
 }

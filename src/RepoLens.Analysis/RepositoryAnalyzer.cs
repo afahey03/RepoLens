@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
 using RepoLens.Shared.Contracts;
 using RepoLens.Shared.Models;
@@ -264,6 +265,101 @@ public class RepositoryAnalyzer : IRepositoryAnalyzer
         };
     }
 
+    public async Task<FullAnalysisResult> AnalyzeIncrementalAsync(
+        string repoPath, string repositoryUrl,
+        CachedAnalysis previousAnalysis,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Running incremental analysis for {RepoPath}...", repoPath);
+
+        // 1. Scan current files (also computes fresh hashes)
+        var currentFiles = await ScanFilesAsync(repoPath, cancellationToken);
+        _logger.LogInformation("Scanned {Count} files for incremental comparison", currentFiles.Count);
+
+        // 2. Determine which files changed, were added, or removed
+        var previousHashes = previousAnalysis.FileHashes;
+        var changedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var unchangedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var file in currentFiles)
+        {
+            if (previousHashes.TryGetValue(file.RelativePath, out var oldHash)
+                && string.Equals(oldHash, file.ContentHash, StringComparison.OrdinalIgnoreCase))
+            {
+                unchangedPaths.Add(file.RelativePath);
+            }
+            else
+            {
+                changedPaths.Add(file.RelativePath);
+            }
+        }
+
+        // Files that existed before but are now gone
+        var removedPaths = previousHashes.Keys
+            .Where(p => !currentFiles.Any(f => string.Equals(f.RelativePath, p, StringComparison.OrdinalIgnoreCase)))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        _logger.LogInformation(
+            "Incremental diff: {Changed} changed/new, {Unchanged} unchanged, {Removed} removed",
+            changedPaths.Count, unchangedPaths.Count, removedPaths.Count);
+
+        // 3. If nothing changed, return the previous analysis directly
+        if (changedPaths.Count == 0 && removedPaths.Count == 0)
+        {
+            _logger.LogInformation("No changes detected — returning cached analysis");
+            return new FullAnalysisResult
+            {
+                Files = currentFiles,
+                Symbols = previousAnalysis.Symbols,
+                Graph = previousAnalysis.Graph,
+                Overview = previousAnalysis.Overview
+            };
+        }
+
+        // 4. Re-extract symbols via parsers and keep only those from changed files.
+        //    For unchanged files, reuse symbols from the previous cache.
+        var freshSymbols = await ExtractSymbolsAsync(repoPath, cancellationToken);
+        var symbolsFromChangedFiles = freshSymbols
+            .Where(s => changedPaths.Contains(s.FilePath))
+            .ToList();
+
+        var symbolsFromUnchangedFiles = previousAnalysis.Symbols
+            .Where(s => unchangedPaths.Contains(s.FilePath))
+            .ToList();
+
+        var mergedSymbols = symbolsFromUnchangedFiles
+            .Concat(symbolsFromChangedFiles)
+            .ToList();
+
+        _logger.LogInformation(
+            "Symbols merged: {Reused} reused + {Fresh} fresh = {Total} total",
+            symbolsFromUnchangedFiles.Count, symbolsFromChangedFiles.Count, mergedSymbols.Count);
+
+        // 5. Rebuild dependency graph (structural, fast)
+        var graph = BuildDependencyGraphFromFiles(repoPath, currentFiles);
+        foreach (var parser in _parsers)
+        {
+            var (nodes, edges) = await parser.BuildDependenciesAsync(repoPath, cancellationToken);
+            graph.Nodes.AddRange(nodes);
+            graph.Edges.AddRange(edges);
+        }
+
+        // 6. Rebuild overview from merged data
+        var overview = BuildOverviewFromFiles(repoPath, repositoryUrl, currentFiles, mergedSymbols, graph);
+
+        _logger.LogInformation(
+            "Incremental analysis complete: {Files} files, {Symbols} symbols, {Nodes} graph nodes",
+            currentFiles.Count, mergedSymbols.Count, graph.Nodes.Count);
+
+        return new FullAnalysisResult
+        {
+            Files = currentFiles,
+            Symbols = mergedSymbols,
+            Graph = graph,
+            Overview = overview
+        };
+    }
+
     /// <summary>
     /// Builds the dependency graph from an already-scanned file list (avoids re-scanning).
     /// </summary>
@@ -496,13 +592,15 @@ public class RepositoryAnalyzer : IRepositoryAnalyzer
                 var fileSize = new System.IO.FileInfo(filePath).Length;
                 var relativePath = Path.GetRelativePath(rootPath, filePath).Replace('\\', '/');
 
-                // Count lines only for reasonably sized files
+                // Count lines and compute content hash for reasonably sized files
                 var lineCount = 0;
+                string? contentHash = null;
                 if (fileSize > 0 && fileSize <= MaxFileSizeBytes)
                 {
                     try
                     {
                         lineCount = CountLines(filePath);
+                        contentHash = ComputeFileHash(filePath);
                     }
                     catch (Exception ex)
                     {
@@ -515,7 +613,8 @@ public class RepositoryAnalyzer : IRepositoryAnalyzer
                     RelativePath = relativePath,
                     Language = language,
                     SizeBytes = fileSize,
-                    LineCount = lineCount
+                    LineCount = lineCount,
+                    ContentHash = contentHash
                 });
             }
         }
@@ -535,6 +634,16 @@ public class RepositoryAnalyzer : IRepositoryAnalyzer
         while (reader.ReadLine() is not null)
             count++;
         return count;
+    }
+
+    /// <summary>
+    /// Computes a SHA-256 hash of a file's contents, returned as a lowercase hex string.
+    /// </summary>
+    private static string ComputeFileHash(string filePath)
+    {
+        using var stream = File.OpenRead(filePath);
+        var hashBytes = SHA256.HashData(stream);
+        return Convert.ToHexString(hashBytes).ToLowerInvariant();
     }
 
     /// <summary>

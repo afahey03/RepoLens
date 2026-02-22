@@ -13,4 +13,10 @@ public class AnalyzeRequest
     /// Never persisted to disk — used only for the download request.
     /// </summary>
     public string? GitHubToken { get; set; }
+
+    /// <summary>
+    /// When true, forces a fresh download and incremental re-analysis
+    /// even if a cached result already exists.
+    /// </summary>
+    public bool ForceReanalyze { get; set; }
 }

@@ -31,7 +31,7 @@ function App() {
         }
     }, []);
 
-    const handleAnalyze = async (e: React.FormEvent) => {
+    const handleAnalyze = async (e: React.FormEvent, forceReanalyze = false) => {
         e.preventDefault();
         if (!repoUrl.trim()) return;
 
@@ -44,7 +44,11 @@ function App() {
         stopPolling();
 
         try {
-            const result = await analyzeRepository(repoUrl.trim(), gitHubToken.trim() || undefined);
+            const result = await analyzeRepository(
+                repoUrl.trim(),
+                gitHubToken.trim() || undefined,
+                forceReanalyze || undefined,
+            );
             const id = result.repositoryId;
             setRepoId(id);
 
@@ -181,24 +185,33 @@ function App() {
 
             {repoId && !loading && (
                 <>
-                    <div className="tabs">
+                    <div className="results-toolbar">
+                        <div className="tabs">
+                            <button
+                                className={activeTab === 'overview' ? 'active' : ''}
+                                onClick={() => setActiveTab('overview')}
+                            >
+                                Overview
+                            </button>
+                            <button
+                                className={activeTab === 'architecture' ? 'active' : ''}
+                                onClick={() => setActiveTab('architecture')}
+                            >
+                                Architecture
+                            </button>
+                            <button
+                                className={activeTab === 'search' ? 'active' : ''}
+                                onClick={() => setActiveTab('search')}
+                            >
+                                Search
+                            </button>
+                        </div>
                         <button
-                            className={activeTab === 'overview' ? 'active' : ''}
-                            onClick={() => setActiveTab('overview')}
+                            className="reanalyze-btn"
+                            onClick={(e) => handleAnalyze(e, true)}
+                            title="Re-download and incrementally re-analyze this repository"
                         >
-                            Overview
-                        </button>
-                        <button
-                            className={activeTab === 'architecture' ? 'active' : ''}
-                            onClick={() => setActiveTab('architecture')}
-                        >
-                            Architecture
-                        </button>
-                        <button
-                            className={activeTab === 'search' ? 'active' : ''}
-                            onClick={() => setActiveTab('search')}
-                        >
-                            Search
+                            &#x21bb; Re-analyze
                         </button>
                     </div>
 

@@ -3,6 +3,7 @@
 export interface AnalyzeRequest {
     repositoryUrl: string;
     gitHubToken?: string;
+    forceReanalyze?: boolean;
 }
 
 export interface AnalyzeResponse {

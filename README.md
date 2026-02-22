@@ -107,14 +107,6 @@ src/
 
 ---
 
-## Architecture
-
-See [docs/architecture.md](docs/architecture.md) for detailed component diagrams and data flow.
-
-See [docs/vision.md](docs/vision.md) for the long-term product vision.
-
----
-
 ## License
 
-This project is provided as-is for educational and personal use.
+This project is for anyone to use so long as it is not used to achieve access that you do not have.

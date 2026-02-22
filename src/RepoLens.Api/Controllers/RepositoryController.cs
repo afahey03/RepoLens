@@ -50,8 +50,8 @@ public class RepositoryController : ControllerBase
 
         var repoId = GenerateRepoId(request.RepositoryUrl);
 
-        // Return cached result immediately
-        if (_cache.Has(repoId))
+        // Return cached result immediately (unless force re-analyze requested)
+        if (_cache.Has(repoId) && !request.ForceReanalyze)
         {
             var existing = _cache.Get(repoId)!;
             _searchEngine.BuildIndex(repoId, existing.Symbols, existing.Files);
@@ -65,24 +65,43 @@ public class RepositoryController : ControllerBase
             return Ok(new AnalyzeResponse { RepositoryId = repoId, Status = "analyzing" });
         }
 
-        _logger.LogInformation("Starting analysis for {Url} (id: {RepoId})", request.RepositoryUrl, repoId);
+        // Capture previous analysis for incremental mode
+        CachedAnalysis? previousAnalysis = request.ForceReanalyze ? _cache.Get(repoId) : null;
+
+        _logger.LogInformation("Starting {Mode} analysis for {Url} (id: {RepoId})",
+            previousAnalysis is not null ? "incremental" : "full",
+            request.RepositoryUrl, repoId);
         _progress.Start(repoId);
 
         // Fire-and-forget background analysis
         var url = request.RepositoryUrl;
         var token = request.GitHubToken;
+        var prevAnalysis = previousAnalysis;
         _ = Task.Run(async () =>
         {
             try
             {
-                // Stage 1: Download
+                // Stage 1: Download (clear local cache first when re-analyzing)
                 _progress.Update(repoId, AnalysisStage.Downloading, "Downloading repository...", 10);
+                if (prevAnalysis is not null)
+                {
+                    _downloader.ClearLocalCache(url);
+                }
                 var repoPath = await _downloader.DownloadAsync(url, CancellationToken.None, token);
                 _logger.LogInformation("Repository downloaded to {Path}", repoPath);
 
-                // Stage 2: Scanning & Parsing
-                _progress.Update(repoId, AnalysisStage.Scanning, "Scanning files...", 30);
-                var analysis = await _analyzer.AnalyzeFullAsync(repoPath, url, CancellationToken.None);
+                // Stage 2: Scanning & Parsing (full or incremental)
+                FullAnalysisResult analysis;
+                if (prevAnalysis is not null)
+                {
+                    _progress.Update(repoId, AnalysisStage.Scanning, "Scanning for changes...", 30);
+                    analysis = await _analyzer.AnalyzeIncrementalAsync(repoPath, url, prevAnalysis, CancellationToken.None);
+                }
+                else
+                {
+                    _progress.Update(repoId, AnalysisStage.Scanning, "Scanning files...", 30);
+                    analysis = await _analyzer.AnalyzeFullAsync(repoPath, url, CancellationToken.None);
+                }
                 _logger.LogInformation("Full analysis complete: {Files} files, {Symbols} symbols, {Nodes} nodes",
                     analysis.Files.Count, analysis.Symbols.Count, analysis.Graph.Nodes.Count);
 
@@ -97,7 +116,10 @@ public class RepositoryController : ControllerBase
                     Overview = analysis.Overview,
                     Graph = analysis.Graph,
                     Symbols = analysis.Symbols,
-                    Files = analysis.Files
+                    Files = analysis.Files,
+                    FileHashes = analysis.Files
+                        .Where(f => f.ContentHash is not null)
+                        .ToDictionary(f => f.RelativePath, f => f.ContentHash!)
                 });
 
                 _progress.Complete(repoId);

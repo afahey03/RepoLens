@@ -1,10 +1,12 @@
+using System.Text.Json.Serialization;
 using RepoLens.Analysis;
 using RepoLens.Engine;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Register services
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddAnalysisServices();
 builder.Services.AddEngineServices();
 

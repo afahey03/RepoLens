@@ -201,11 +201,17 @@
 }
 
 /* Tabs */
+.results-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #27272a;
+    margin-bottom: 1.5rem;
+}
+
 .tabs {
     display: flex;
     gap: 0;
-    border-bottom: 1px solid #27272a;
-    margin-bottom: 1.5rem;
 }
 
 .tabs button {
@@ -221,6 +227,23 @@
 .tabs button.active {
     color: #e4e4e7;
     border-bottom-color: #6366f1;
+}
+
+.reanalyze-btn {
+    padding: 0.5rem 1rem;
+    background: #27272a;
+    border: 1px solid #3f3f46;
+    border-radius: 0.5rem;
+    color: #a1a1aa;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    white-space: nowrap;
+}
+
+.reanalyze-btn:hover {
+    background: #3f3f46;
+    color: #e4e4e7;
 }
 
 /* Overview */

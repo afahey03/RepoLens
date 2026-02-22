@@ -32,6 +32,19 @@ public class GitHubRepositoryDownloader : IRepositoryDownloader
         Directory.CreateDirectory(_workingDirectory);
     }
 
+    public void ClearLocalCache(string repositoryUrl)
+    {
+        var (owner, repo) = ParseGitHubUrl(repositoryUrl);
+        var repoId = $"{owner}_{repo}";
+        var targetDir = Path.Combine(_workingDirectory, repoId);
+
+        if (Directory.Exists(targetDir))
+        {
+            _logger.LogInformation("Clearing local cache for {Owner}/{Repo} at {Path}", owner, repo, targetDir);
+            Directory.Delete(targetDir, recursive: true);
+        }
+    }
+
     public async Task<string> DownloadAsync(string repositoryUrl, CancellationToken cancellationToken = default, string? gitHubToken = null)
     {
         var (owner, repo) = ParseGitHubUrl(repositoryUrl);

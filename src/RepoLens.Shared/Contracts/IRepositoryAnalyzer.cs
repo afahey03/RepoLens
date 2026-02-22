@@ -32,6 +32,16 @@ public interface IRepositoryAnalyzer
     /// the result for overview, graph, and symbol extraction.
     /// </summary>
     Task<FullAnalysisResult> AnalyzeFullAsync(string repoPath, string repositoryUrl, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Runs an incremental analysis — re-parses only files that have changed
+    /// (based on SHA-256 content hashes) since the previous analysis.
+    /// Returns a full result set that merges unchanged cached data with fresh data for changed files.
+    /// </summary>
+    Task<FullAnalysisResult> AnalyzeIncrementalAsync(
+        string repoPath, string repositoryUrl,
+        CachedAnalysis previousAnalysis,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>
