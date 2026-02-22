@@ -1,5 +1,6 @@
+using System.IO.Compression;
+using Microsoft.Extensions.Logging;
 using RepoLens.Shared.Contracts;
-using RepoLens.Shared.Models;
 
 namespace RepoLens.Analysis;
 
@@ -9,80 +10,121 @@ namespace RepoLens.Analysis;
 public class GitHubRepositoryDownloader : IRepositoryDownloader
 {
     private readonly HttpClient _httpClient;
+    private readonly ILogger<GitHubRepositoryDownloader> _logger;
     private readonly string _workingDirectory;
 
-    public GitHubRepositoryDownloader(HttpClient httpClient)
+    private static readonly string[] BranchCandidates = ["main", "master"];
+
+    public GitHubRepositoryDownloader(HttpClient httpClient, ILogger<GitHubRepositoryDownloader> logger)
     {
         _httpClient = httpClient;
+        _logger = logger;
         _workingDirectory = Path.Combine(Path.GetTempPath(), "RepoLens");
         Directory.CreateDirectory(_workingDirectory);
     }
 
     public async Task<string> DownloadAsync(string repositoryUrl, CancellationToken cancellationToken = default)
     {
-        // Parse owner/repo from URL
         var (owner, repo) = ParseGitHubUrl(repositoryUrl);
         var repoId = $"{owner}_{repo}";
         var targetDir = Path.Combine(_workingDirectory, repoId);
 
-        // If already downloaded, reuse
+        // If already downloaded, return the inner extracted folder
         if (Directory.Exists(targetDir))
         {
-            return targetDir;
+            _logger.LogInformation("Repository {Owner}/{Repo} already cached at {Path}", owner, repo, targetDir);
+            return ResolveExtractedRoot(targetDir);
         }
 
-        // Download zip from GitHub
-        var zipUrl = $"https://github.com/{owner}/{repo}/archive/refs/heads/main.zip";
+        _logger.LogInformation("Downloading repository {Owner}/{Repo}...", owner, repo);
+
         var zipPath = Path.Combine(_workingDirectory, $"{repoId}.zip");
 
-        using var response = await _httpClient.GetAsync(zipUrl, cancellationToken);
-
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            // Try 'master' branch as fallback
-            zipUrl = $"https://github.com/{owner}/{repo}/archive/refs/heads/master.zip";
-            response.Dispose();
-            using var fallbackResponse = await _httpClient.GetAsync(zipUrl, cancellationToken);
-            fallbackResponse.EnsureSuccessStatusCode();
-
-            await using var fallbackStream = await fallbackResponse.Content.ReadAsStreamAsync(cancellationToken);
-            await using var fallbackFile = File.Create(zipPath);
-            await fallbackStream.CopyToAsync(fallbackFile, cancellationToken);
+            await DownloadZipAsync(owner, repo, zipPath, cancellationToken);
+            ExtractZip(zipPath, targetDir);
         }
-        else
+        finally
         {
+            // Always clean up the zip file
+            if (File.Exists(zipPath))
+            {
+                File.Delete(zipPath);
+            }
+        }
+
+        var result = ResolveExtractedRoot(targetDir);
+        _logger.LogInformation("Repository {Owner}/{Repo} ready at {Path}", owner, repo, result);
+        return result;
+    }
+
+    private async Task DownloadZipAsync(string owner, string repo, string zipPath, CancellationToken cancellationToken)
+    {
+        foreach (var branch in BranchCandidates)
+        {
+            var zipUrl = $"https://github.com/{owner}/{repo}/archive/refs/heads/{branch}.zip";
+            _logger.LogDebug("Trying {Url}...", zipUrl);
+
+            using var response = await _httpClient.GetAsync(zipUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogDebug("Branch '{Branch}' returned {StatusCode}, trying next...", branch, response.StatusCode);
+                continue;
+            }
+
             await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
             await using var file = File.Create(zipPath);
             await stream.CopyToAsync(file, cancellationToken);
+
+            _logger.LogInformation("Downloaded {Owner}/{Repo} from branch '{Branch}' ({Size:N0} bytes)",
+                owner, repo, branch, new System.IO.FileInfo(zipPath).Length);
+            return;
         }
 
-        // Extract
-        System.IO.Compression.ZipFile.ExtractToDirectory(zipPath, targetDir, overwriteFiles: true);
-        File.Delete(zipPath);
+        throw new InvalidOperationException(
+            $"Could not download repository {owner}/{repo}. " +
+            $"Tried branches: {string.Join(", ", BranchCandidates)}. " +
+            "Ensure the repository is public and the URL is correct.");
+    }
 
-        // GitHub zips contain a single root folder like "repo-main/", find it
-        var extractedDirs = Directory.GetDirectories(targetDir);
-        if (extractedDirs.Length == 1)
-        {
-            return extractedDirs[0];
-        }
+    private void ExtractZip(string zipPath, string targetDir)
+    {
+        _logger.LogDebug("Extracting {Zip} to {Dir}...", zipPath, targetDir);
+        ZipFile.ExtractToDirectory(zipPath, targetDir, overwriteFiles: true);
+    }
 
-        return targetDir;
+    /// <summary>
+    /// GitHub zips contain a single root folder (e.g. "repo-main/"). Return that folder.
+    /// </summary>
+    private static string ResolveExtractedRoot(string targetDir)
+    {
+        var dirs = Directory.GetDirectories(targetDir);
+        return dirs.Length == 1 ? dirs[0] : targetDir;
     }
 
     private static (string Owner, string Repo) ParseGitHubUrl(string url)
     {
-        // Support formats: https://github.com/owner/repo[.git]
-        var uri = new Uri(url.TrimEnd('/'));
+        if (string.IsNullOrWhiteSpace(url))
+            throw new ArgumentException("Repository URL cannot be empty.");
+
+        // Normalize
+        url = url.Trim().TrimEnd('/');
+
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            throw new ArgumentException($"Invalid URL format: {url}");
+
+        if (uri.Host is not ("github.com" or "www.github.com"))
+            throw new ArgumentException($"Only GitHub URLs are supported. Got: {uri.Host}");
+
         var segments = uri.AbsolutePath.Trim('/').Split('/');
 
-        if (segments.Length < 2)
-        {
-            throw new ArgumentException($"Invalid GitHub repository URL: {url}");
-        }
+        if (segments.Length < 2 || string.IsNullOrEmpty(segments[0]) || string.IsNullOrEmpty(segments[1]))
+            throw new ArgumentException($"Could not parse owner/repo from URL: {url}");
 
         var owner = segments[0];
-        var repo = segments[1].Replace(".git", "");
+        var repo = segments[1].Replace(".git", "", StringComparison.OrdinalIgnoreCase);
 
         return (owner, repo);
     }

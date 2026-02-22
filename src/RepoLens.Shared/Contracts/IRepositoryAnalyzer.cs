@@ -26,4 +26,21 @@ public interface IRepositoryAnalyzer
     /// Generates a high-level overview of the repository.
     /// </summary>
     Task<RepositoryOverview> GenerateOverviewAsync(string repoPath, string repositoryUrl, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Runs a full analysis in a single pass — scans files once and reuses
+    /// the result for overview, graph, and symbol extraction.
+    /// </summary>
+    Task<FullAnalysisResult> AnalyzeFullAsync(string repoPath, string repositoryUrl, CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// Contains all results from a full repository analysis pass.
+/// </summary>
+public class FullAnalysisResult
+{
+    public required List<Models.FileInfo> Files { get; init; }
+    public required List<SymbolInfo> Symbols { get; init; }
+    public required DependencyGraph Graph { get; init; }
+    public required RepositoryOverview Overview { get; init; }
 }
