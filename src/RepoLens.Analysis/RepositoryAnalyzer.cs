@@ -250,10 +250,10 @@ public class RepositoryAnalyzer : IRepositoryAnalyzer
         _logger.LogInformation("Dependency graph built: {Nodes} nodes, {Edges} edges",
             graph.Nodes.Count, graph.Edges.Count);
 
-        // 4. Generate overview reusing scanned files
-        var overview = BuildOverviewFromFiles(repoPath, repositoryUrl, files);
-        _logger.LogInformation("Overview complete: {Name} — {Files} files, {Lines} lines",
-            overview.Name, overview.TotalFiles, overview.TotalLines);
+        // 4. Generate overview reusing scanned files, symbols, and graph
+        var overview = BuildOverviewFromFiles(repoPath, repositoryUrl, files, symbols, graph);
+        _logger.LogInformation("Overview complete: {Name} — {Files} files, {Lines} lines, {Summary}",
+            overview.Name, overview.TotalFiles, overview.TotalLines, overview.Complexity);
 
         return new FullAnalysisResult
         {
@@ -320,16 +320,26 @@ public class RepositoryAnalyzer : IRepositoryAnalyzer
     }
 
     /// <summary>
-    /// Builds the overview from an already-scanned file list (avoids re-scanning).
+    /// Builds the overview from pre-computed files, symbols, and graph.
     /// </summary>
-    private RepositoryOverview BuildOverviewFromFiles(string repoPath, string repositoryUrl, List<FileInfo> files)
+    private RepositoryOverview BuildOverviewFromFiles(
+        string repoPath, string repositoryUrl,
+        List<FileInfo> files, List<SymbolInfo> symbols, DependencyGraph graph)
     {
-        var languageBreakdown = files
-            .Where(f => IsCodeLanguage(f.Language))
+        // ── Language breakdown by file count and by line count ──
+        var codeFiles = files.Where(f => IsCodeLanguage(f.Language)).ToList();
+
+        var languageBreakdown = codeFiles
             .GroupBy(f => f.Language)
             .OrderByDescending(g => g.Count())
             .ToDictionary(g => g.Key, g => g.Count());
 
+        var languageLineBreakdown = codeFiles
+            .GroupBy(f => f.Language)
+            .OrderByDescending(g => g.Sum(f => f.LineCount))
+            .ToDictionary(g => g.Key, g => g.Sum(f => f.LineCount));
+
+        // ── Basic info ──
         var topLevelFolders = Directory.GetDirectories(repoPath)
             .Select(d => Path.GetFileName(d))
             .Where(name => !IgnoredDirectories.Contains(name))
@@ -338,20 +348,114 @@ public class RepositoryAnalyzer : IRepositoryAnalyzer
 
         var repoName = Path.GetFileName(repoPath);
         if (repoName.EndsWith("-main") || repoName.EndsWith("-master"))
-        {
             repoName = repoName[..repoName.LastIndexOf('-')];
-        }
+
+        var totalLines = files.Sum(f => f.LineCount);
+        var frameworks = DetectFrameworks(repoPath, files);
+        var entryPoints = DetectEntryPoints(files);
+
+        // ── Symbol counts by kind ──
+        var symbolCounts = symbols
+            .Where(s => s.Kind != SymbolKind.Import)
+            .GroupBy(s => s.Kind.ToString())
+            .OrderByDescending(g => g.Count())
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        // ── Key types (classes/interfaces with most members) ──
+        var typeSymbols = symbols
+            .Where(s => s.Kind is SymbolKind.Class or SymbolKind.Interface)
+            .ToHashSet();
+
+        var typeNames = typeSymbols
+            .GroupBy(t => t.Name)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var membersByType = symbols
+            .Where(s => s.ParentSymbol is not null
+                && s.Kind is SymbolKind.Method or SymbolKind.Property or SymbolKind.Function)
+            .GroupBy(s => s.ParentSymbol!)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        var keyTypes = membersByType
+            .OrderByDescending(kv => kv.Value)
+            .Take(10)
+            .Select(kv =>
+            {
+                typeNames.TryGetValue(kv.Key, out var sym);
+                return new KeyTypeInfo
+                {
+                    Name = kv.Key,
+                    FilePath = sym?.FilePath ?? "",
+                    Kind = sym?.Kind.ToString() ?? "Class",
+                    MemberCount = kv.Value
+                };
+            })
+            .ToList();
+
+        // ── Most connected modules (by import edges) ──
+        var importEdges = graph.Edges
+            .Where(e => e.Relationship == EdgeRelationship.Imports)
+            .ToList();
+
+        var outgoing = importEdges
+            .GroupBy(e => e.Source)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        var incoming = importEdges
+            .GroupBy(e => e.Target)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        var allModuleIds = outgoing.Keys.Union(incoming.Keys).ToHashSet();
+        var nodeById = graph.Nodes
+            .GroupBy(n => n.Id)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var mostConnected = allModuleIds
+            .Select(id =>
+            {
+                outgoing.TryGetValue(id, out var outCount);
+                incoming.TryGetValue(id, out var inCount);
+                nodeById.TryGetValue(id, out var node);
+                return new ConnectedModuleInfo
+                {
+                    Name = node?.Name ?? id,
+                    FilePath = node?.FilePath ?? "",
+                    IncomingEdges = inCount,
+                    OutgoingEdges = outCount
+                };
+            })
+            .OrderByDescending(m => m.IncomingEdges + m.OutgoingEdges)
+            .Take(10)
+            .ToList();
+
+        // ── External dependencies ──
+        var externalDeps = DetectExternalDependencies(repoPath, files);
+
+        // ── Complexity classification ──
+        var complexity = ClassifyComplexity(totalLines, files.Count, symbols.Count);
+
+        // ── Auto-generated summary ──
+        var summary = GenerateSummary(
+            repoName, languageBreakdown, frameworks, totalLines,
+            files.Count, symbols.Count, keyTypes, entryPoints, complexity);
 
         return new RepositoryOverview
         {
             Name = repoName,
             Url = repositoryUrl,
             LanguageBreakdown = languageBreakdown,
+            LanguageLineBreakdown = languageLineBreakdown,
             TotalFiles = files.Count,
-            TotalLines = files.Sum(f => f.LineCount),
+            TotalLines = totalLines,
             TopLevelFolders = topLevelFolders,
-            EntryPoints = DetectEntryPoints(files),
-            DetectedFrameworks = DetectFrameworks(repoPath, files)
+            EntryPoints = entryPoints,
+            DetectedFrameworks = frameworks,
+            SymbolCounts = symbolCounts,
+            KeyTypes = keyTypes,
+            MostConnectedModules = mostConnected,
+            ExternalDependencies = externalDeps,
+            Summary = summary,
+            Complexity = complexity
         };
     }
 
@@ -538,5 +642,178 @@ public class RepositoryAnalyzer : IRepositoryAnalyzer
             frameworks.Add("Docker");
 
         return frameworks;
+    }
+
+    // ─── Phase 4: Summarization helpers ────────────────────────────────
+
+    /// <summary>
+    /// Detects external dependencies from package.json (npm) and .csproj (NuGet).
+    /// </summary>
+    private static List<string> DetectExternalDependencies(string repoPath, List<FileInfo> files)
+    {
+        var deps = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // npm dependencies from root package.json
+        var rootPackageJson = Path.Combine(repoPath, "package.json");
+        if (File.Exists(rootPackageJson))
+        {
+            try
+            {
+                var content = File.ReadAllText(rootPackageJson);
+                ExtractNpmDeps(content, deps);
+            }
+            catch { /* ignore */ }
+        }
+
+        // NuGet dependencies from .csproj files
+        foreach (var file in files.Where(f => f.RelativePath.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase)))
+        {
+            try
+            {
+                var csprojPath = Path.Combine(repoPath, file.RelativePath.Replace('/', Path.DirectorySeparatorChar));
+                var content = File.ReadAllText(csprojPath);
+                ExtractNuGetDeps(content, deps);
+            }
+            catch { /* ignore */ }
+        }
+
+        return deps.OrderBy(d => d).ToList();
+    }
+
+    private static void ExtractNpmDeps(string packageJsonContent, HashSet<string> deps)
+    {
+        // Simple regex extraction of "dependencies" and "devDependencies" keys
+        // Matches: "package-name": "version"
+        var inDepsSection = false;
+        foreach (var line in packageJsonContent.Split('\n'))
+        {
+            var trimmed = line.Trim();
+            if (trimmed.Contains("\"dependencies\"") || trimmed.Contains("\"devDependencies\"") ||
+                trimmed.Contains("\"peerDependencies\""))
+            {
+                inDepsSection = true;
+                continue;
+            }
+
+            if (inDepsSection)
+            {
+                if (trimmed.StartsWith('}'))
+                {
+                    inDepsSection = false;
+                    continue;
+                }
+
+                // Extract package name from "name": "version"
+                var quoteStart = trimmed.IndexOf('"');
+                if (quoteStart >= 0)
+                {
+                    var quoteEnd = trimmed.IndexOf('"', quoteStart + 1);
+                    if (quoteEnd > quoteStart + 1)
+                    {
+                        var name = trimmed[(quoteStart + 1)..quoteEnd];
+                        if (!string.IsNullOrEmpty(name) && !name.StartsWith("//"))
+                            deps.Add(name);
+                    }
+                }
+            }
+        }
+    }
+
+    private static void ExtractNuGetDeps(string csprojContent, HashSet<string> deps)
+    {
+        // Match <PackageReference Include="Name" .../>
+        var regex = new System.Text.RegularExpressions.Regex(
+            @"<PackageReference\s+Include=""([^""]+)""",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        foreach (System.Text.RegularExpressions.Match match in regex.Matches(csprojContent))
+        {
+            deps.Add(match.Groups[1].Value);
+        }
+    }
+
+    /// <summary>
+    /// Classifies repository complexity based on lines, files, and symbols.
+    /// </summary>
+    private static string ClassifyComplexity(int totalLines, int totalFiles, int symbolCount)
+    {
+        // Use a composite score
+        var score = totalLines + totalFiles * 10 + symbolCount * 5;
+
+        return score switch
+        {
+            < 500 => "Tiny",
+            < 5_000 => "Small",
+            < 50_000 => "Medium",
+            < 500_000 => "Large",
+            _ => "Huge"
+        };
+    }
+
+    /// <summary>
+    /// Generates a plain-English summary of the repository.
+    /// </summary>
+    private static string GenerateSummary(
+        string name,
+        Dictionary<string, int> languageBreakdown,
+        List<string> frameworks,
+        int totalLines,
+        int totalFiles,
+        int symbolCount,
+        List<KeyTypeInfo> keyTypes,
+        List<string> entryPoints,
+        string complexity)
+    {
+        var parts = new List<string>();
+
+        // Opening sentence
+        var primaryLang = languageBreakdown.Keys.FirstOrDefault() ?? "unknown";
+        parts.Add($"{name} is a {complexity.ToLowerInvariant()}-sized {primaryLang} repository " +
+                   $"with {totalFiles:N0} files and {totalLines:N0} lines of code.");
+
+        // Frameworks
+        if (frameworks.Count > 0)
+        {
+            var fwList = string.Join(", ", frameworks);
+            parts.Add($"It uses {fwList}.");
+        }
+
+        // Language mix
+        if (languageBreakdown.Count > 1)
+        {
+            var langs = string.Join(", ", languageBreakdown
+                .Select(kv => $"{kv.Key} ({kv.Value} files)"));
+            parts.Add($"Languages: {langs}.");
+        }
+
+        // Key types
+        if (keyTypes.Count > 0)
+        {
+            var top = keyTypes.Take(3)
+                .Select(t => $"{t.Name} ({t.MemberCount} members)");
+            parts.Add($"Key types: {string.Join(", ", top)}.");
+        }
+
+        // Entry points
+        if (entryPoints.Count > 0)
+        {
+            if (entryPoints.Count <= 3)
+            {
+                parts.Add($"Entry points: {string.Join(", ", entryPoints.Select(Path.GetFileName))}.");
+            }
+            else
+            {
+                parts.Add($"{entryPoints.Count} entry points detected.");
+            }
+        }
+
+        // Symbol density
+        if (symbolCount > 0 && totalFiles > 0)
+        {
+            var density = (double)symbolCount / totalFiles;
+            parts.Add($"Symbol density: {density:F1} symbols per file ({symbolCount:N0} total).");
+        }
+
+        return string.Join(" ", parts);
     }
 }

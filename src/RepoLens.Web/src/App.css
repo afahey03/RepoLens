@@ -135,6 +135,150 @@
     padding: 0.2rem 0;
 }
 
+/* Summary & Complexity */
+.summary-card p {
+    color: #d4d4d8;
+    font-size: 0.95rem;
+}
+
+.complexity-badge {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    border-radius: 1rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #fff;
+    vertical-align: middle;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* Language stacked bar */
+.lang-bar-stacked {
+    display: flex;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #27272a;
+}
+
+.lang-segment:nth-child(1) {
+    background: #6366f1;
+}
+
+.lang-segment:nth-child(2) {
+    background: #22d3ee;
+}
+
+.lang-segment:nth-child(3) {
+    background: #f59e0b;
+}
+
+.lang-segment:nth-child(4) {
+    background: #10b981;
+}
+
+.lang-segment:nth-child(5) {
+    background: #ec4899;
+}
+
+.lang-segment:nth-child(n+6) {
+    background: #71717a;
+}
+
+/* Symbol table */
+.symbol-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.symbol-table td {
+    padding: 0.3rem 0.5rem;
+    border-bottom: 1px solid #27272a;
+    color: #d4d4d8;
+}
+
+.symbol-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* Key types list */
+.key-types-list {
+    list-style: none;
+    font-size: 0.9rem;
+}
+
+.key-types-list li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #27272a;
+}
+
+.key-types-list li:last-child {
+    border-bottom: none;
+}
+
+.key-types-list .badge {
+    background: #3f3f46;
+    padding: 0.1rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    color: #a1a1aa;
+}
+
+.key-types-list .member-count {
+    color: #a1a1aa;
+    font-size: 0.8rem;
+}
+
+.key-types-list .file-path,
+.connected-list .file-path {
+    font-size: 0.75rem;
+    color: #71717a;
+    margin-top: 0.15rem;
+}
+
+/* Connected modules */
+.connected-list {
+    list-style: none;
+    font-size: 0.9rem;
+}
+
+.connected-list li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #27272a;
+}
+
+.connected-list li:last-child {
+    border-bottom: none;
+}
+
+.edge-in {
+    color: #22d3ee;
+    font-size: 0.8rem;
+    margin-right: 0.5rem;
+}
+
+.edge-out {
+    color: #f59e0b;
+    font-size: 0.8rem;
+}
+
+/* Dependency tags */
+.dep-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.dep-tag {
+    background: #27272a;
+    padding: 0.2rem 0.6rem;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    color: #d4d4d8;
+}
+
 /* Architecture Graph */
 .architecture-graph {
     width: 100%;

@@ -13,11 +13,32 @@ export interface RepositoryOverview {
     name: string;
     url: string;
     languageBreakdown: Record<string, number>;
+    languageLineBreakdown: Record<string, number>;
     totalFiles: number;
     totalLines: number;
     detectedFrameworks: string[];
     entryPoints: string[];
     topLevelFolders: string[];
+    symbolCounts: Record<string, number>;
+    keyTypes: KeyTypeInfo[];
+    mostConnectedModules: ConnectedModuleInfo[];
+    externalDependencies: string[];
+    summary: string;
+    complexity: string;
+}
+
+export interface KeyTypeInfo {
+    name: string;
+    filePath: string;
+    kind: string;
+    memberCount: number;
+}
+
+export interface ConnectedModuleInfo {
+    name: string;
+    filePath: string;
+    incomingEdges: number;
+    outgoingEdges: number;
 }
 
 export interface GraphNodeDto {
