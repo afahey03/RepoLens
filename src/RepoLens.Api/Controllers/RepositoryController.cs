@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using RepoLens.Engine;
 using RepoLens.Shared.Contracts;
 using RepoLens.Shared.DTOs;
 using RepoLens.Shared.Models;
@@ -222,11 +223,16 @@ public class RepositoryController : ControllerBase
     }
 
     /// <summary>
-    /// GET /api/repository/{id}/search?q=query
-    /// Searches the repository index.
+    /// GET /api/repository/{id}/search?q=query&amp;kinds=Class,Function&amp;skip=0&amp;take=20
+    /// Searches the repository index with optional kind filtering and pagination.
     /// </summary>
     [HttpGet("{id}/search")]
-    public ActionResult<SearchResponse> Search(string id, [FromQuery] string q)
+    public ActionResult<SearchResponse> Search(
+        string id,
+        [FromQuery] string q,
+        [FromQuery] string? kinds = null,
+        [FromQuery] int skip = 0,
+        [FromQuery] int take = 20)
     {
         if (string.IsNullOrWhiteSpace(q))
         {
@@ -238,13 +244,53 @@ public class RepositoryController : ControllerBase
             return NotFound("Repository not analyzed yet.");
         }
 
-        var results = _searchEngine.Search(id, q);
+        var kindArray = string.IsNullOrWhiteSpace(kinds)
+            ? null
+            : kinds.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        var results = _searchEngine.Search(id, q, kindArray, skip, take);
+        var totalResults = _searchEngine.SearchCount(id, q, kindArray);
+        var availableKinds = _searchEngine.GetAvailableKinds(id);
 
         return Ok(new SearchResponse
         {
             Query = q,
-            TotalResults = results.Count,
+            TotalResults = totalResults,
+            Skip = skip,
+            Take = take,
+            AvailableKinds = availableKinds,
             Results = results
+        });
+    }
+
+    /// <summary>
+    /// GET /api/repository/{id}/suggest?q=prefix
+    /// Returns autocomplete suggestions for the given prefix.
+    /// </summary>
+    [HttpGet("{id}/suggest")]
+    public ActionResult<SuggestResponse> Suggest(string id, [FromQuery] string q)
+    {
+        if (string.IsNullOrWhiteSpace(q) || q.Length < 2)
+        {
+            return Ok(new SuggestResponse { Prefix = q ?? "", Suggestions = [] });
+        }
+
+        if (!_analysisCache.ContainsKey(id))
+        {
+            return NotFound("Repository not analyzed yet.");
+        }
+
+        var suggestions = ((SearchEngine)_searchEngine).Suggest(id, q, 10);
+
+        return Ok(new SuggestResponse
+        {
+            Prefix = q,
+            Suggestions = suggestions.Select(s => new SearchSuggestionDto
+            {
+                Text = s.Text,
+                Kind = s.Kind,
+                FilePath = s.FilePath
+            }).ToList()
         });
     }
 

@@ -10,4 +10,5 @@ public class SearchResult
     public required string Snippet { get; set; }
     public double Score { get; set; }
     public int Line { get; set; }
+    public string Kind { get; set; } = "File";
 }

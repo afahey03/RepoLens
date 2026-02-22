@@ -65,12 +65,27 @@ export interface SearchResult {
     snippet: string;
     score: number;
     line: number;
+    kind: string;
 }
 
 export interface SearchResponse {
     query: string;
     totalResults: number;
+    skip: number;
+    take: number;
+    availableKinds: string[];
     results: SearchResult[];
+}
+
+export interface SearchSuggestion {
+    text: string;
+    kind: string;
+    filePath: string;
+}
+
+export interface SuggestResponse {
+    prefix: string;
+    suggestions: SearchSuggestion[];
 }
 
 export interface GraphStatsResponse {

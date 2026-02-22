@@ -5,6 +5,7 @@ import type {
     ArchitectureResponse,
     SearchResponse,
     GraphStatsResponse,
+    SuggestResponse,
 } from './types';
 
 const BASE_URL = '/api/repository';
@@ -32,9 +33,32 @@ export async function getArchitecture(repoId: string): Promise<ArchitectureRespo
     return res.json();
 }
 
-export async function searchRepository(repoId: string, query: string): Promise<SearchResponse> {
-    const res = await fetch(`${BASE_URL}/${repoId}/search?q=${encodeURIComponent(query)}`);
+export interface SearchOptions {
+    kinds?: string[];
+    skip?: number;
+    take?: number;
+}
+
+export async function searchRepository(
+    repoId: string,
+    query: string,
+    options: SearchOptions = {},
+): Promise<SearchResponse> {
+    const params = new URLSearchParams({ q: query });
+    if (options.kinds && options.kinds.length > 0) {
+        params.set('kinds', options.kinds.join(','));
+    }
+    if (options.skip !== undefined) params.set('skip', String(options.skip));
+    if (options.take !== undefined) params.set('take', String(options.take));
+
+    const res = await fetch(`${BASE_URL}/${repoId}/search?${params}`);
     if (!res.ok) throw new Error(`Search failed: ${res.statusText}`);
+    return res.json();
+}
+
+export async function getSuggestions(repoId: string, prefix: string): Promise<SuggestResponse> {
+    const res = await fetch(`${BASE_URL}/${repoId}/suggest?q=${encodeURIComponent(prefix)}`);
+    if (!res.ok) throw new Error(`Suggest failed: ${res.statusText}`);
     return res.json();
 }
 

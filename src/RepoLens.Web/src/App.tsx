@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { analyzeRepository, getOverview, getArchitecture, getGraphStats, searchRepository } from './api';
-import type { RepositoryOverview, ArchitectureResponse, SearchResponse, GraphStatsResponse } from './types';
+import { analyzeRepository, getOverview, getArchitecture, getGraphStats } from './api';
+import type { RepositoryOverview, ArchitectureResponse, GraphStatsResponse } from './types';
 import OverviewPanel from './components/OverviewPanel';
 import ArchitectureGraph from './components/ArchitectureGraph';
 import SearchPanel from './components/SearchPanel';
@@ -18,7 +18,6 @@ function App() {
     const [overview, setOverview] = useState<RepositoryOverview | null>(null);
     const [architecture, setArchitecture] = useState<ArchitectureResponse | null>(null);
     const [graphStats, setGraphStats] = useState<GraphStatsResponse | null>(null);
-    const [searchResults, setSearchResults] = useState<SearchResponse | null>(null);
 
     const handleAnalyze = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -29,7 +28,6 @@ function App() {
         setOverview(null);
         setArchitecture(null);
         setGraphStats(null);
-        setSearchResults(null);
 
         try {
             const result = await analyzeRepository(repoUrl.trim());
@@ -50,17 +48,6 @@ function App() {
             setError(err instanceof Error ? err.message : 'Analysis failed');
         } finally {
             setLoading(false);
-        }
-    };
-
-    const handleSearch = async (query: string) => {
-        if (!repoId || !query.trim()) return;
-
-        try {
-            const results = await searchRepository(repoId, query.trim());
-            setSearchResults(results);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Search failed');
         }
     };
 
@@ -111,8 +98,8 @@ function App() {
                     {activeTab === 'architecture' && architecture && (
                         <ArchitectureGraph architecture={architecture} stats={graphStats} />
                     )}
-                    {activeTab === 'search' && (
-                        <SearchPanel onSearch={handleSearch} results={searchResults} />
+                    {activeTab === 'search' && repoId && (
+                        <SearchPanel repoId={repoId} />
                     )}
                 </>
             )}

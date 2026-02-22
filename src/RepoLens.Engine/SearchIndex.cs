@@ -15,6 +15,16 @@ public class IndexDocument
 }
 
 /// <summary>
+/// A lightweight search suggestion for autocomplete.
+/// </summary>
+public class SearchSuggestion
+{
+    public required string Text { get; set; }
+    public required string Kind { get; set; }
+    public required string FilePath { get; set; }
+}
+
+/// <summary>
 /// In-memory inverted index with BM25-like scoring.
 /// </summary>
 public class SearchIndex
@@ -98,10 +108,78 @@ public class SearchIndex
                     Symbol = doc.Symbol,
                     Snippet = doc.Content.Length > 200 ? doc.Content[..200] + "..." : doc.Content,
                     Score = kv.Value,
-                    Line = doc.Line
+                    Line = doc.Line,
+                    Kind = doc.Kind
                 };
             })
             .ToList();
+    }
+
+    /// <summary>
+    /// Returns lightweight suggestions for autocomplete.
+    /// Matches prefix/substring on symbol names and file paths.
+    /// </summary>
+    public List<SearchSuggestion> Suggest(string prefix, int maxResults = 10)
+    {
+        if (string.IsNullOrWhiteSpace(prefix) || prefix.Length < 2)
+            return [];
+
+        var lower = prefix.ToLowerInvariant();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var suggestions = new List<SearchSuggestion>();
+
+        // Prioritize exact prefix matches on symbol name first
+        foreach (var doc in _documents)
+        {
+            if (doc.Symbol != null &&
+                doc.Symbol.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) &&
+                seen.Add(doc.Symbol))
+            {
+                suggestions.Add(new SearchSuggestion
+                {
+                    Text = doc.Symbol,
+                    Kind = doc.Kind,
+                    FilePath = doc.FilePath
+                });
+                if (suggestions.Count >= maxResults) return suggestions;
+            }
+        }
+
+        // Then substring matches on symbol name
+        foreach (var doc in _documents)
+        {
+            if (doc.Symbol != null &&
+                doc.Symbol.Contains(prefix, StringComparison.OrdinalIgnoreCase) &&
+                seen.Add(doc.Symbol))
+            {
+                suggestions.Add(new SearchSuggestion
+                {
+                    Text = doc.Symbol,
+                    Kind = doc.Kind,
+                    FilePath = doc.FilePath
+                });
+                if (suggestions.Count >= maxResults) return suggestions;
+            }
+        }
+
+        // Then file path matches
+        foreach (var doc in _documents)
+        {
+            if (doc.Kind == "File" &&
+                doc.FilePath.Contains(prefix, StringComparison.OrdinalIgnoreCase) &&
+                seen.Add(doc.FilePath))
+            {
+                suggestions.Add(new SearchSuggestion
+                {
+                    Text = Path.GetFileName(doc.FilePath),
+                    Kind = "File",
+                    FilePath = doc.FilePath
+                });
+                if (suggestions.Count >= maxResults) return suggestions;
+            }
+        }
+
+        return suggestions;
     }
 
     private static List<string> Tokenize(string text)
@@ -167,5 +245,17 @@ public class SearchIndex
         }
 
         return parts;
+    }
+
+    /// <summary>
+    /// Returns all distinct symbol kinds present in the index.
+    /// </summary>
+    public List<string> GetAvailableKinds()
+    {
+        return _documents
+            .Select(d => d.Kind)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(k => k)
+            .ToList();
     }
 }
