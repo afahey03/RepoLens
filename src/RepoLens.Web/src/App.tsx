@@ -10,6 +10,8 @@ type Tab = 'overview' | 'architecture' | 'search';
 
 function App() {
     const [repoUrl, setRepoUrl] = useState('');
+    const [gitHubToken, setGitHubToken] = useState('');
+    const [showToken, setShowToken] = useState(false);
     const [repoId, setRepoId] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [progress, setProgress] = useState<AnalysisProgress | null>(null);
@@ -42,7 +44,7 @@ function App() {
         stopPolling();
 
         try {
-            const result = await analyzeRepository(repoUrl.trim());
+            const result = await analyzeRepository(repoUrl.trim(), gitHubToken.trim() || undefined);
             const id = result.repositoryId;
             setRepoId(id);
 
@@ -132,6 +134,36 @@ function App() {
                     {loading ? 'Analyzing...' : 'Analyze'}
                 </button>
             </form>
+
+            <div className="token-section">
+                <button
+                    type="button"
+                    className="token-toggle"
+                    onClick={() => setShowToken(!showToken)}
+                >
+                    {showToken ? 'Hide' : 'Private repo?'} {showToken ? '\u25B2' : '\u25BC'}
+                </button>
+                {showToken && (
+                    <div className="token-input-wrapper">
+                        <input
+                            type="password"
+                            className="token-input"
+                            placeholder="GitHub Personal Access Token (optional)"
+                            value={gitHubToken}
+                            onChange={(e) => setGitHubToken(e.target.value)}
+                            disabled={loading}
+                            autoComplete="off"
+                        />
+                        <p className="token-hint">
+                            Required for private repos. Generate at{' '}
+                            <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer">
+                                GitHub Settings &rarr; Tokens
+                            </a>
+                            . Never stored — used only for this download.
+                        </p>
+                    </div>
+                )}
+            </div>
 
             {loading && progress && (
                 <div className="progress-container">

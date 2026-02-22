@@ -2,6 +2,7 @@
 
 export interface AnalyzeRequest {
     repositoryUrl: string;
+    gitHubToken?: string;
 }
 
 export interface AnalyzeResponse {

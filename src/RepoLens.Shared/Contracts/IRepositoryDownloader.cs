@@ -8,7 +8,9 @@ namespace RepoLens.Shared.Contracts;
 public interface IRepositoryDownloader
 {
     /// <summary>
-    /// Downloads a public GitHub repository and returns the local path.
+    /// Downloads a GitHub repository and returns the local path.
+    /// Provide an optional <paramref name="gitHubToken"/> (Personal Access Token)
+    /// to access private or organization repositories.
     /// </summary>
-    Task<string> DownloadAsync(string repositoryUrl, CancellationToken cancellationToken = default);
+    Task<string> DownloadAsync(string repositoryUrl, CancellationToken cancellationToken = default, string? gitHubToken = null);
 }

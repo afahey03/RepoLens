@@ -75,6 +75,67 @@
     cursor: not-allowed;
 }
 
+/* Token Section */
+.token-section {
+    margin-bottom: 1rem;
+}
+
+.token-toggle {
+    background: none;
+    border: none;
+    color: #71717a;
+    font-size: 0.8rem;
+    cursor: pointer;
+    padding: 0.25rem 0;
+    transition: color 0.2s ease;
+}
+
+.token-toggle:hover {
+    color: #a1a1aa;
+}
+
+.token-input-wrapper {
+    margin-top: 0.5rem;
+    animation: fadeIn 0.25s ease;
+}
+
+.token-input {
+    width: 100%;
+    padding: 0.65rem 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid #27272a;
+    background: #18181b;
+    color: #e4e4e7;
+    font-size: 0.9rem;
+    font-family: monospace;
+    box-sizing: border-box;
+}
+
+.token-input:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
+}
+
+.token-input:disabled {
+    opacity: 0.5;
+}
+
+.token-hint {
+    color: #52525b;
+    font-size: 0.75rem;
+    margin-top: 0.35rem;
+}
+
+.token-hint a {
+    color: #818cf8;
+    text-decoration: none;
+}
+
+.token-hint a:hover {
+    text-decoration: underline;
+}
+
 /* Progress Bar */
 .progress-container {
     margin-bottom: 1.5rem;

@@ -70,13 +70,14 @@ public class RepositoryController : ControllerBase
 
         // Fire-and-forget background analysis
         var url = request.RepositoryUrl;
+        var token = request.GitHubToken;
         _ = Task.Run(async () =>
         {
             try
             {
                 // Stage 1: Download
                 _progress.Update(repoId, AnalysisStage.Downloading, "Downloading repository...", 10);
-                var repoPath = await _downloader.DownloadAsync(url, CancellationToken.None);
+                var repoPath = await _downloader.DownloadAsync(url, CancellationToken.None, token);
                 _logger.LogInformation("Repository downloaded to {Path}", repoPath);
 
                 // Stage 2: Scanning & Parsing

@@ -5,7 +5,8 @@ using RepoLens.Shared.Contracts;
 namespace RepoLens.Analysis;
 
 /// <summary>
-/// Downloads a public GitHub repository as a zip archive and extracts it locally.
+/// Downloads a public or private GitHub repository as a zip archive and extracts it locally.
+/// Supports optional GitHub PAT authentication for private repos.
 /// </summary>
 public class GitHubRepositoryDownloader : IRepositoryDownloader
 {
@@ -31,7 +32,7 @@ public class GitHubRepositoryDownloader : IRepositoryDownloader
         Directory.CreateDirectory(_workingDirectory);
     }
 
-    public async Task<string> DownloadAsync(string repositoryUrl, CancellationToken cancellationToken = default)
+    public async Task<string> DownloadAsync(string repositoryUrl, CancellationToken cancellationToken = default, string? gitHubToken = null)
     {
         var (owner, repo) = ParseGitHubUrl(repositoryUrl);
         var repoId = $"{owner}_{repo}";
@@ -44,13 +45,14 @@ public class GitHubRepositoryDownloader : IRepositoryDownloader
             return ResolveExtractedRoot(targetDir);
         }
 
-        _logger.LogInformation("Downloading repository {Owner}/{Repo}...", owner, repo);
+        _logger.LogInformation("Downloading repository {Owner}/{Repo} (authenticated: {Auth})...",
+            owner, repo, !string.IsNullOrEmpty(gitHubToken));
 
         var zipPath = Path.Combine(_workingDirectory, $"{repoId}.zip");
 
         try
         {
-            await DownloadZipAsync(owner, repo, zipPath, cancellationToken);
+            await DownloadZipAsync(owner, repo, zipPath, cancellationToken, gitHubToken);
             ExtractZip(zipPath, targetDir);
         }
         finally
@@ -67,7 +69,7 @@ public class GitHubRepositoryDownloader : IRepositoryDownloader
         return result;
     }
 
-    private async Task DownloadZipAsync(string owner, string repo, string zipPath, CancellationToken cancellationToken)
+    private async Task DownloadZipAsync(string owner, string repo, string zipPath, CancellationToken cancellationToken, string? gitHubToken = null)
     {
         Exception? lastException = null;
 
@@ -83,12 +85,28 @@ public class GitHubRepositoryDownloader : IRepositoryDownloader
 
             foreach (var branch in BranchCandidates)
             {
-                var zipUrl = $"https://github.com/{owner}/{repo}/archive/refs/heads/{branch}.zip";
-                _logger.LogDebug("Trying {Url}...", zipUrl);
+                // Use the GitHub API for authenticated requests (required for private repos),
+                // and the web URL for unauthenticated public repo downloads.
+                var isAuthenticated = !string.IsNullOrWhiteSpace(gitHubToken);
+                var zipUrl = isAuthenticated
+                    ? $"https://api.github.com/repos/{owner}/{repo}/zipball/{branch}"
+                    : $"https://github.com/{owner}/{repo}/archive/refs/heads/{branch}.zip";
+
+                _logger.LogDebug("Trying {Url} (authenticated: {Auth})...", zipUrl, isAuthenticated);
 
                 try
                 {
-                    using var response = await _httpClient.GetAsync(zipUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                    using var requestMsg = new HttpRequestMessage(HttpMethod.Get, zipUrl);
+                    if (isAuthenticated)
+                    {
+                        requestMsg.Headers.Authorization =
+                            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", gitHubToken);
+                        requestMsg.Headers.Add("User-Agent", "RepoLens");
+                        requestMsg.Headers.Add("Accept", "application/vnd.github+json");
+                        requestMsg.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
+                    }
+
+                    using var response = await _httpClient.SendAsync(requestMsg, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
                     if (!response.IsSuccessStatusCode)
                     {
@@ -124,7 +142,7 @@ public class GitHubRepositoryDownloader : IRepositoryDownloader
         throw new InvalidOperationException(
             $"Could not download repository {owner}/{repo} after {MaxRetries + 1} attempts. " +
             $"Tried branches: {string.Join(", ", BranchCandidates)}. " +
-            "Ensure the repository is public and the URL is correct.",
+            "Ensure the URL is correct. For private repos, provide a valid GitHub Personal Access Token.",
             lastException);
     }
 

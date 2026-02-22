@@ -11,8 +11,9 @@ import type {
 
 const BASE_URL = '/api/repository';
 
-export async function analyzeRepository(url: string): Promise<AnalyzeResponse> {
+export async function analyzeRepository(url: string, gitHubToken?: string): Promise<AnalyzeResponse> {
     const body: AnalyzeRequest = { repositoryUrl: url };
+    if (gitHubToken) body.gitHubToken = gitHubToken;
     const res = await fetch(`${BASE_URL}/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
