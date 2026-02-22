@@ -97,3 +97,11 @@ export interface GraphStatsResponse {
     rootNodes: string[];
     leafNodes: string[];
 }
+
+export interface AnalysisProgress {
+    repositoryId: string;
+    stage: string;
+    stageLabel: string;
+    percentComplete: number;
+    error?: string;
+}

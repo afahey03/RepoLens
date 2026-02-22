@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { analyzeRepository, getOverview, getArchitecture, getGraphStats } from './api';
-import type { RepositoryOverview, ArchitectureResponse, GraphStatsResponse } from './types';
+import { useState, useRef, useCallback } from 'react';
+import { analyzeRepository, getOverview, getArchitecture, getGraphStats, getProgress } from './api';
+import type { RepositoryOverview, ArchitectureResponse, GraphStatsResponse, AnalysisProgress } from './types';
 import OverviewPanel from './components/OverviewPanel';
 import ArchitectureGraph from './components/ArchitectureGraph';
 import SearchPanel from './components/SearchPanel';
@@ -12,6 +12,7 @@ function App() {
     const [repoUrl, setRepoUrl] = useState('');
     const [repoId, setRepoId] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const [progress, setProgress] = useState<AnalysisProgress | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<Tab>('overview');
 
@@ -19,25 +20,82 @@ function App() {
     const [architecture, setArchitecture] = useState<ArchitectureResponse | null>(null);
     const [graphStats, setGraphStats] = useState<GraphStatsResponse | null>(null);
 
+    const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    const stopPolling = useCallback(() => {
+        if (pollRef.current) {
+            clearInterval(pollRef.current);
+            pollRef.current = null;
+        }
+    }, []);
+
     const handleAnalyze = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!repoUrl.trim()) return;
 
         setLoading(true);
         setError(null);
+        setProgress(null);
         setOverview(null);
         setArchitecture(null);
         setGraphStats(null);
+        stopPolling();
 
         try {
             const result = await analyzeRepository(repoUrl.trim());
-            setRepoId(result.repositoryId);
+            const id = result.repositoryId;
+            setRepoId(id);
 
-            // Load overview, architecture, and graph stats in parallel
+            if (result.status === 'completed') {
+                // Cached — load all data immediately
+                await loadResults(id);
+                return;
+            }
+
+            // Status is "analyzing" — start polling for progress
+            setProgress({
+                repositoryId: id,
+                stage: 'Queued',
+                stageLabel: 'Queued',
+                percentComplete: 0,
+            });
+
+            pollRef.current = setInterval(async () => {
+                try {
+                    const p = await getProgress(id);
+                    setProgress(p);
+
+                    if (p.stage === 'Completed') {
+                        stopPolling();
+                        await loadResults(id);
+                    } else if (p.stage === 'Failed') {
+                        stopPolling();
+                        setError(p.error ?? 'Analysis failed');
+                        setLoading(false);
+                    }
+                } catch {
+                    // Transient fetch error — keep polling
+                }
+            }, 600);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Analysis failed');
+            setLoading(false);
+        }
+    };
+
+    const loadResults = async (id: string) => {
+        try {
+            setProgress({
+                repositoryId: id,
+                stage: 'Completed',
+                stageLabel: 'Loading results...',
+                percentComplete: 95,
+            });
+
             const [ov, arch, stats] = await Promise.all([
-                getOverview(result.repositoryId),
-                getArchitecture(result.repositoryId),
-                getGraphStats(result.repositoryId),
+                getOverview(id),
+                getArchitecture(id),
+                getGraphStats(id),
             ]);
 
             setOverview(ov);
@@ -45,9 +103,10 @@ function App() {
             setGraphStats(stats);
             setActiveTab('overview');
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Analysis failed');
+            setError(err instanceof Error ? err.message : 'Failed to load results');
         } finally {
             setLoading(false);
+            setProgress(null);
         }
     };
 
@@ -73,6 +132,18 @@ function App() {
                     {loading ? 'Analyzing...' : 'Analyze'}
                 </button>
             </form>
+
+            {loading && progress && (
+                <div className="progress-container">
+                    <div className="progress-bar">
+                        <div
+                            className="progress-fill"
+                            style={{ width: `${progress.percentComplete}%` }}
+                        />
+                    </div>
+                    <p className="progress-label">{progress.stageLabel}</p>
+                </div>
+            )}
 
             {error && <p className="error">{error}</p>}
 

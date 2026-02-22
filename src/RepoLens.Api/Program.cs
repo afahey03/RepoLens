@@ -22,6 +22,14 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 app.UseCors();
+
+// Serve the React SPA from wwwroot in production
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 app.MapControllers();
+
+// Fallback: serve index.html for SPA routes not matched by the API
+app.MapFallbackToFile("index.html");
 
 app.Run();

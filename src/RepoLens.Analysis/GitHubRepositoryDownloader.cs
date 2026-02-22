@@ -15,6 +15,14 @@ public class GitHubRepositoryDownloader : IRepositoryDownloader
 
     private static readonly string[] BranchCandidates = ["main", "master"];
 
+    /// <summary>Max retries for transient download failures.</summary>
+    private const int MaxRetries = 3;
+    private static readonly TimeSpan[] RetryDelays = [
+        TimeSpan.FromSeconds(1),
+        TimeSpan.FromSeconds(3),
+        TimeSpan.FromSeconds(6)
+    ];
+
     public GitHubRepositoryDownloader(HttpClient httpClient, ILogger<GitHubRepositoryDownloader> logger)
     {
         _httpClient = httpClient;
@@ -61,32 +69,63 @@ public class GitHubRepositoryDownloader : IRepositoryDownloader
 
     private async Task DownloadZipAsync(string owner, string repo, string zipPath, CancellationToken cancellationToken)
     {
-        foreach (var branch in BranchCandidates)
+        Exception? lastException = null;
+
+        for (var attempt = 0; attempt <= MaxRetries; attempt++)
         {
-            var zipUrl = $"https://github.com/{owner}/{repo}/archive/refs/heads/{branch}.zip";
-            _logger.LogDebug("Trying {Url}...", zipUrl);
-
-            using var response = await _httpClient.GetAsync(zipUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-
-            if (!response.IsSuccessStatusCode)
+            if (attempt > 0)
             {
-                _logger.LogDebug("Branch '{Branch}' returned {StatusCode}, trying next...", branch, response.StatusCode);
-                continue;
+                var delay = RetryDelays[Math.Min(attempt - 1, RetryDelays.Length - 1)];
+                _logger.LogWarning("Retry {Attempt}/{Max} for {Owner}/{Repo} after {Delay}s...",
+                    attempt, MaxRetries, owner, repo, delay.TotalSeconds);
+                await Task.Delay(delay, cancellationToken);
             }
 
-            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-            await using var file = File.Create(zipPath);
-            await stream.CopyToAsync(file, cancellationToken);
+            foreach (var branch in BranchCandidates)
+            {
+                var zipUrl = $"https://github.com/{owner}/{repo}/archive/refs/heads/{branch}.zip";
+                _logger.LogDebug("Trying {Url}...", zipUrl);
 
-            _logger.LogInformation("Downloaded {Owner}/{Repo} from branch '{Branch}' ({Size:N0} bytes)",
-                owner, repo, branch, new System.IO.FileInfo(zipPath).Length);
-            return;
+                try
+                {
+                    using var response = await _httpClient.GetAsync(zipUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        _logger.LogDebug("Branch '{Branch}' returned {StatusCode}, trying next...", branch, response.StatusCode);
+                        continue;
+                    }
+
+                    await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+                    await using var file = File.Create(zipPath);
+                    await stream.CopyToAsync(file, cancellationToken);
+
+                    _logger.LogInformation("Downloaded {Owner}/{Repo} from branch '{Branch}' ({Size:N0} bytes)",
+                        owner, repo, branch, new System.IO.FileInfo(zipPath).Length);
+                    return;
+                }
+                catch (HttpRequestException ex) when (attempt < MaxRetries)
+                {
+                    lastException = ex;
+                    _logger.LogWarning(ex, "Transient HTTP error downloading {Owner}/{Repo} branch '{Branch}'",
+                        owner, repo, branch);
+                    break; // Break inner loop to retry from first branch
+                }
+                catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested && attempt < MaxRetries)
+                {
+                    lastException = ex;
+                    _logger.LogWarning("Timeout downloading {Owner}/{Repo} branch '{Branch}', will retry",
+                        owner, repo, branch);
+                    break;
+                }
+            }
         }
 
         throw new InvalidOperationException(
-            $"Could not download repository {owner}/{repo}. " +
+            $"Could not download repository {owner}/{repo} after {MaxRetries + 1} attempts. " +
             $"Tried branches: {string.Join(", ", BranchCandidates)}. " +
-            "Ensure the repository is public and the URL is correct.");
+            "Ensure the repository is public and the URL is correct.",
+            lastException);
     }
 
     private void ExtractZip(string zipPath, string targetDir)

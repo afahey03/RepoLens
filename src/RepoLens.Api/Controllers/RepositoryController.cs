@@ -14,90 +14,128 @@ public class RepositoryController : ControllerBase
     private readonly IRepositoryDownloader _downloader;
     private readonly IRepositoryAnalyzer _analyzer;
     private readonly ISearchEngine _searchEngine;
+    private readonly IAnalysisCache _cache;
+    private readonly IAnalysisProgressTracker _progress;
     private readonly ILogger<RepositoryController> _logger;
-
-    // In-memory store for MVP (will be replaced with proper storage later)
-    private static readonly Dictionary<string, AnalysisResult> _analysisCache = new();
 
     public RepositoryController(
         IRepositoryDownloader downloader,
         IRepositoryAnalyzer analyzer,
         ISearchEngine searchEngine,
+        IAnalysisCache cache,
+        IAnalysisProgressTracker progress,
         ILogger<RepositoryController> logger)
     {
         _downloader = downloader;
         _analyzer = analyzer;
         _searchEngine = searchEngine;
+        _cache = cache;
+        _progress = progress;
         _logger = logger;
     }
 
     /// <summary>
     /// POST /api/repository/analyze
-    /// Downloads and analyzes a public GitHub repository.
+    /// Kicks off analysis of a public GitHub repository.
+    /// Returns immediately — poll GET /progress for status.
     /// </summary>
     [HttpPost("analyze")]
-    public async Task<ActionResult<AnalyzeResponse>> Analyze(
-        [FromBody] AnalyzeRequest request,
-        CancellationToken cancellationToken)
+    public ActionResult<AnalyzeResponse> Analyze(
+        [FromBody] AnalyzeRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.RepositoryUrl))
         {
             return BadRequest("Repository URL is required.");
         }
 
-        // Generate a deterministic repository ID from the URL
         var repoId = GenerateRepoId(request.RepositoryUrl);
 
-        // Return cached result if already analyzed
-        if (_analysisCache.ContainsKey(repoId))
+        // Return cached result immediately
+        if (_cache.Has(repoId))
         {
+            var existing = _cache.Get(repoId)!;
+            _searchEngine.BuildIndex(repoId, existing.Symbols, existing.Files);
             _logger.LogInformation("Returning cached analysis for {RepoId}", repoId);
             return Ok(new AnalyzeResponse { RepositoryId = repoId, Status = "completed" });
         }
 
+        // If already running, return current status
+        if (_progress.IsRunning(repoId))
+        {
+            return Ok(new AnalyzeResponse { RepositoryId = repoId, Status = "analyzing" });
+        }
+
         _logger.LogInformation("Starting analysis for {Url} (id: {RepoId})", request.RepositoryUrl, repoId);
+        _progress.Start(repoId);
 
-        try
+        // Fire-and-forget background analysis
+        var url = request.RepositoryUrl;
+        _ = Task.Run(async () =>
         {
-            // Step 1: Download the repository
-            var repoPath = await _downloader.DownloadAsync(request.RepositoryUrl, cancellationToken);
-            _logger.LogInformation("Repository downloaded to {Path}", repoPath);
-
-            // Step 2: Run full analysis in a single pass (scans files only once)
-            var analysis = await _analyzer.AnalyzeFullAsync(repoPath, request.RepositoryUrl, cancellationToken);
-            _logger.LogInformation("Full analysis complete: {Files} files, {Symbols} symbols, {Nodes} nodes",
-                analysis.Files.Count, analysis.Symbols.Count, analysis.Graph.Nodes.Count);
-
-            // Step 3: Build search index
-            _searchEngine.BuildIndex(repoId, analysis.Symbols, analysis.Files);
-            _logger.LogInformation("Search index built for {RepoId}", repoId);
-
-            // Cache all results
-            _analysisCache[repoId] = new AnalysisResult
+            try
             {
-                Overview = analysis.Overview,
-                Graph = analysis.Graph,
-                Symbols = analysis.Symbols,
-                Files = analysis.Files
-            };
+                // Stage 1: Download
+                _progress.Update(repoId, AnalysisStage.Downloading, "Downloading repository...", 10);
+                var repoPath = await _downloader.DownloadAsync(url, CancellationToken.None);
+                _logger.LogInformation("Repository downloaded to {Path}", repoPath);
 
-            return Ok(new AnalyzeResponse { RepositoryId = repoId, Status = "completed" });
-        }
-        catch (ArgumentException ex)
+                // Stage 2: Scanning & Parsing
+                _progress.Update(repoId, AnalysisStage.Scanning, "Scanning files...", 30);
+                var analysis = await _analyzer.AnalyzeFullAsync(repoPath, url, CancellationToken.None);
+                _logger.LogInformation("Full analysis complete: {Files} files, {Symbols} symbols, {Nodes} nodes",
+                    analysis.Files.Count, analysis.Symbols.Count, analysis.Graph.Nodes.Count);
+
+                // Stage 3: Build search index
+                _progress.Update(repoId, AnalysisStage.Indexing, "Building search index...", 80);
+                _searchEngine.BuildIndex(repoId, analysis.Symbols, analysis.Files);
+                _logger.LogInformation("Search index built for {RepoId}", repoId);
+
+                // Stage 4: Cache
+                _cache.Store(repoId, new CachedAnalysis
+                {
+                    Overview = analysis.Overview,
+                    Graph = analysis.Graph,
+                    Symbols = analysis.Symbols,
+                    Files = analysis.Files
+                });
+
+                _progress.Complete(repoId);
+                _logger.LogInformation("Analysis complete for {RepoId}", repoId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Analysis failed for {Url}", url);
+                _progress.Fail(repoId, ex.Message);
+            }
+        });
+
+        return Ok(new AnalyzeResponse { RepositoryId = repoId, Status = "analyzing" });
+    }
+
+    /// <summary>
+    /// GET /api/repository/{id}/progress
+    /// Poll this endpoint for real-time analysis progress.
+    /// </summary>
+    [HttpGet("{id}/progress")]
+    public ActionResult<AnalysisProgress> GetProgress(string id)
+    {
+        // If already cached, analysis is done
+        if (_cache.Has(id))
         {
-            _logger.LogWarning("Bad request: {Message}", ex.Message);
-            return BadRequest(ex.Message);
+            return Ok(new AnalysisProgress
+            {
+                RepositoryId = id,
+                Stage = AnalysisStage.Completed,
+                StageLabel = "Completed",
+                PercentComplete = 100
+            });
         }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogError(ex, "Analysis failed for {Url}", request.RepositoryUrl);
-            return UnprocessableEntity(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error analyzing {Url}", request.RepositoryUrl);
-            return StatusCode(500, "An unexpected error occurred during analysis.");
-        }
+
+        var progress = _progress.Get(id);
+        if (progress is null)
+            return NotFound("No analysis found for this repository.");
+
+        return Ok(progress);
     }
 
     /// <summary>
@@ -107,10 +145,9 @@ public class RepositoryController : ControllerBase
     [HttpGet("{id}/overview")]
     public ActionResult<RepositoryOverview> GetOverview(string id)
     {
-        if (!_analysisCache.TryGetValue(id, out var result))
-        {
+        var result = _cache.Get(id);
+        if (result is null)
             return NotFound("Repository not analyzed yet.");
-        }
 
         return Ok(result.Overview);
     }
@@ -122,10 +159,9 @@ public class RepositoryController : ControllerBase
     [HttpGet("{id}/architecture")]
     public ActionResult<ArchitectureResponse> GetArchitecture(string id)
     {
-        if (!_analysisCache.TryGetValue(id, out var result))
-        {
+        var result = _cache.Get(id);
+        if (result is null)
             return NotFound("Repository not analyzed yet.");
-        }
 
         var response = new ArchitectureResponse
         {
@@ -154,10 +190,9 @@ public class RepositoryController : ControllerBase
     [HttpGet("{id}/architecture/stats")]
     public ActionResult<GraphStatsResponse> GetGraphStats(string id)
     {
-        if (!_analysisCache.TryGetValue(id, out var result))
-        {
+        var result = _cache.Get(id);
+        if (result is null)
             return NotFound("Repository not analyzed yet.");
-        }
 
         var graph = result.Graph;
         var targets = new HashSet<string>(graph.Edges.Select(e => e.Target));
@@ -239,10 +274,8 @@ public class RepositoryController : ControllerBase
             return BadRequest("Query parameter 'q' is required.");
         }
 
-        if (!_analysisCache.ContainsKey(id))
-        {
+        if (!_cache.Has(id))
             return NotFound("Repository not analyzed yet.");
-        }
 
         var kindArray = string.IsNullOrWhiteSpace(kinds)
             ? null
@@ -275,10 +308,8 @@ public class RepositoryController : ControllerBase
             return Ok(new SuggestResponse { Prefix = q ?? "", Suggestions = [] });
         }
 
-        if (!_analysisCache.ContainsKey(id))
-        {
+        if (!_cache.Has(id))
             return NotFound("Repository not analyzed yet.");
-        }
 
         var suggestions = ((SearchEngine)_searchEngine).Suggest(id, q, 10);
 
@@ -292,17 +323,6 @@ public class RepositoryController : ControllerBase
                 FilePath = s.FilePath
             }).ToList()
         });
-    }
-
-    /// <summary>
-    /// Internal cache for analysis results during MVP.
-    /// </summary>
-    private class AnalysisResult
-    {
-        public required RepositoryOverview Overview { get; set; }
-        public required DependencyGraph Graph { get; set; }
-        public required List<SymbolInfo> Symbols { get; set; }
-        public required List<Shared.Models.FileInfo> Files { get; set; }
     }
 
     /// <summary>

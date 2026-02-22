@@ -6,6 +6,7 @@ import type {
     SearchResponse,
     GraphStatsResponse,
     SuggestResponse,
+    AnalysisProgress,
 } from './types';
 
 const BASE_URL = '/api/repository';
@@ -65,5 +66,11 @@ export async function getSuggestions(repoId: string, prefix: string): Promise<Su
 export async function getGraphStats(repoId: string): Promise<GraphStatsResponse> {
     const res = await fetch(`${BASE_URL}/${repoId}/architecture/stats`);
     if (!res.ok) throw new Error(`Failed to fetch graph stats: ${res.statusText}`);
+    return res.json();
+}
+
+export async function getProgress(repoId: string): Promise<AnalysisProgress> {
+    const res = await fetch(`${BASE_URL}/${repoId}/progress`);
+    if (!res.ok) throw new Error(`Failed to fetch progress: ${res.statusText}`);
     return res.json();
 }

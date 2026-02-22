@@ -11,6 +11,8 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddEngineServices(this IServiceCollection services)
     {
         services.AddSingleton<ISearchEngine, SearchEngine>();
+        services.AddSingleton<IAnalysisCache, DiskAnalysisCache>();
+        services.AddSingleton<IAnalysisProgressTracker, AnalysisProgressTracker>();
 
         return services;
     }

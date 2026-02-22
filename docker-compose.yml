@@ -1,0 +1,16 @@
+services:
+  repolens:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - repolens-cache:/app/cache
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - REPOLENS_CACHE_DIR=/app/cache
+    restart: unless-stopped
+
+volumes:
+  repolens-cache:
