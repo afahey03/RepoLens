@@ -72,3 +72,13 @@ export interface SearchResponse {
     totalResults: number;
     results: SearchResult[];
 }
+
+export interface GraphStatsResponse {
+    totalNodes: number;
+    totalEdges: number;
+    nodeTypeCounts: Record<string, number>;
+    edgeTypeCounts: Record<string, number>;
+    maxDepth: number;
+    rootNodes: string[];
+    leafNodes: string[];
+}

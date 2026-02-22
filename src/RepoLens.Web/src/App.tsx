@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { analyzeRepository, getOverview, getArchitecture, searchRepository } from './api';
-import type { RepositoryOverview, ArchitectureResponse, SearchResponse } from './types';
+import { analyzeRepository, getOverview, getArchitecture, getGraphStats, searchRepository } from './api';
+import type { RepositoryOverview, ArchitectureResponse, SearchResponse, GraphStatsResponse } from './types';
 import OverviewPanel from './components/OverviewPanel';
 import ArchitectureGraph from './components/ArchitectureGraph';
 import SearchPanel from './components/SearchPanel';
@@ -17,6 +17,7 @@ function App() {
 
     const [overview, setOverview] = useState<RepositoryOverview | null>(null);
     const [architecture, setArchitecture] = useState<ArchitectureResponse | null>(null);
+    const [graphStats, setGraphStats] = useState<GraphStatsResponse | null>(null);
     const [searchResults, setSearchResults] = useState<SearchResponse | null>(null);
 
     const handleAnalyze = async (e: React.FormEvent) => {
@@ -27,20 +28,23 @@ function App() {
         setError(null);
         setOverview(null);
         setArchitecture(null);
+        setGraphStats(null);
         setSearchResults(null);
 
         try {
             const result = await analyzeRepository(repoUrl.trim());
             setRepoId(result.repositoryId);
 
-            // Load overview and architecture in parallel
-            const [ov, arch] = await Promise.all([
+            // Load overview, architecture, and graph stats in parallel
+            const [ov, arch, stats] = await Promise.all([
                 getOverview(result.repositoryId),
                 getArchitecture(result.repositoryId),
+                getGraphStats(result.repositoryId),
             ]);
 
             setOverview(ov);
             setArchitecture(arch);
+            setGraphStats(stats);
             setActiveTab('overview');
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Analysis failed');
@@ -105,7 +109,7 @@ function App() {
 
                     {activeTab === 'overview' && overview && <OverviewPanel overview={overview} />}
                     {activeTab === 'architecture' && architecture && (
-                        <ArchitectureGraph architecture={architecture} />
+                        <ArchitectureGraph architecture={architecture} stats={graphStats} />
                     )}
                     {activeTab === 'search' && (
                         <SearchPanel onSearch={handleSearch} results={searchResults} />

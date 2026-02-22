@@ -11,6 +11,20 @@ public class ArchitectureResponse
     public List<GraphEdgeDto> Edges { get; set; } = [];
 }
 
+/// <summary>
+/// Aggregate statistics about the architecture graph.
+/// </summary>
+public class GraphStatsResponse
+{
+    public int TotalNodes { get; set; }
+    public int TotalEdges { get; set; }
+    public Dictionary<string, int> NodeTypeCounts { get; set; } = [];
+    public Dictionary<string, int> EdgeTypeCounts { get; set; } = [];
+    public int MaxDepth { get; set; }
+    public List<string> RootNodes { get; set; } = [];
+    public List<string> LeafNodes { get; set; } = [];
+}
+
 public class GraphNodeDto
 {
     public required string Id { get; set; }

@@ -147,6 +147,81 @@ public class RepositoryController : ControllerBase
     }
 
     /// <summary>
+    /// GET /api/repository/{id}/architecture/stats
+    /// Returns aggregate statistics about the architecture graph.
+    /// </summary>
+    [HttpGet("{id}/architecture/stats")]
+    public ActionResult<GraphStatsResponse> GetGraphStats(string id)
+    {
+        if (!_analysisCache.TryGetValue(id, out var result))
+        {
+            return NotFound("Repository not analyzed yet.");
+        }
+
+        var graph = result.Graph;
+        var targets = new HashSet<string>(graph.Edges.Select(e => e.Target));
+        var sources = new HashSet<string>(graph.Edges.Select(e => e.Source));
+        var allNodeIds = new HashSet<string>(graph.Nodes.Select(n => n.Id));
+
+        // Root nodes: have no incoming edges
+        var rootNodeIds = allNodeIds.Except(targets).ToList();
+        var rootNames = rootNodeIds
+            .Select(id2 => graph.Nodes.FirstOrDefault(n => n.Id == id2)?.Name ?? id2)
+            .Take(20)
+            .ToList();
+
+        // Leaf nodes: have no outgoing edges
+        var leafNodeIds = allNodeIds.Except(sources).ToList();
+        var leafNames = leafNodeIds
+            .Select(id2 => graph.Nodes.FirstOrDefault(n => n.Id == id2)?.Name ?? id2)
+            .Take(20)
+            .ToList();
+
+        // Max depth via BFS from roots
+        var maxDepth = 0;
+        var adjacency = graph.Edges
+            .Where(e => e.Relationship == EdgeRelationship.Contains)
+            .GroupBy(e => e.Source)
+            .ToDictionary(g => g.Key, g => g.Select(e => e.Target).ToList());
+
+        foreach (var rootId in rootNodeIds)
+        {
+            var queue = new Queue<(string id, int depth)>();
+            var visited = new HashSet<string>();
+            queue.Enqueue((rootId, 0));
+            visited.Add(rootId);
+
+            while (queue.Count > 0)
+            {
+                var (curId, depth) = queue.Dequeue();
+                if (depth > maxDepth) maxDepth = depth;
+                if (adjacency.TryGetValue(curId, out var children))
+                {
+                    foreach (var child in children.Where(c => visited.Add(c)))
+                    {
+                        queue.Enqueue((child, depth + 1));
+                    }
+                }
+            }
+        }
+
+        return Ok(new GraphStatsResponse
+        {
+            TotalNodes = graph.Nodes.Count,
+            TotalEdges = graph.Edges.Count,
+            NodeTypeCounts = graph.Nodes
+                .GroupBy(n => n.Type.ToString())
+                .ToDictionary(g => g.Key, g => g.Count()),
+            EdgeTypeCounts = graph.Edges
+                .GroupBy(e => e.Relationship.ToString())
+                .ToDictionary(g => g.Key, g => g.Count()),
+            MaxDepth = maxDepth,
+            RootNodes = rootNames,
+            LeafNodes = leafNames
+        });
+    }
+
+    /// <summary>
     /// GET /api/repository/{id}/search?q=query
     /// Searches the repository index.
     /// </summary>

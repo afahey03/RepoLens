@@ -280,12 +280,341 @@
 }
 
 /* Architecture Graph */
+.architecture-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.architecture-body {
+    display: flex;
+    gap: 0;
+    position: relative;
+}
+
 .architecture-graph {
-    width: 100%;
-    height: 500px;
+    flex: 1;
+    height: 600px;
     background: #18181b;
     border: 1px solid #27272a;
     border-radius: 0.75rem;
+    overflow: hidden;
+}
+
+/* ── Custom graph nodes ── */
+.graph-node {
+    min-width: 160px;
+    max-width: 220px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1.5px solid;
+    cursor: pointer;
+    transition: box-shadow 0.15s;
+}
+
+.graph-node:hover {
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.35);
+}
+
+.graph-node-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 2px;
+}
+
+.graph-node-icon {
+    font-size: 11px;
+}
+
+.graph-node-type {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+}
+
+.graph-node-label {
+    color: #e4e4e7;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.graph-node-path {
+    color: #71717a;
+    font-size: 9px;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.graph-handle {
+    width: 6px !important;
+    height: 6px !important;
+    background: #52525b !important;
+    border: none !important;
+}
+
+/* ── Graph Toolbar ── */
+.graph-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.6rem 1rem;
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 0.75rem;
+    font-size: 0.8rem;
+}
+
+.toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.toolbar-label {
+    color: #71717a;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-right: 0.25rem;
+}
+
+.toolbar-btn {
+    padding: 0.3rem 0.6rem;
+    border-radius: 0.3rem;
+    border: 1px solid #3f3f46;
+    background: transparent;
+    color: #a1a1aa;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.toolbar-btn:hover {
+    background: #27272a;
+    color: #e4e4e7;
+}
+
+.toolbar-btn.active {
+    background: #6366f1;
+    border-color: #6366f1;
+    color: #fff;
+}
+
+.toolbar-filter {
+    padding: 0.2rem 0.5rem;
+    border-radius: 1rem;
+    border: 1px solid #3f3f46;
+    font-size: 0.7rem;
+    cursor: pointer;
+}
+
+.toolbar-filter.on {
+    background: #27272a;
+    color: #e4e4e7;
+    border-color: #52525b;
+}
+
+.toolbar-filter.off {
+    background: transparent;
+    color: #52525b;
+    border-color: #27272a;
+    text-decoration: line-through;
+}
+
+.toolbar-stats {
+    margin-left: auto;
+    color: #71717a;
+    font-size: 0.75rem;
+}
+
+/* ── Graph Legend ── */
+.graph-legend {
+    display: flex;
+    gap: 2rem;
+    padding: 0.5rem 1rem;
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 0.75rem;
+    font-size: 0.75rem;
+    color: #a1a1aa;
+}
+
+.legend-section {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.legend-title {
+    color: #71717a;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.legend-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.legend-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.legend-line {
+    display: inline-block;
+    width: 16px;
+    height: 2px;
+    border-radius: 1px;
+}
+
+/* ── Node Detail Panel ── */
+.node-detail-panel {
+    width: 280px;
+    min-width: 280px;
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 0 0.75rem 0.75rem 0;
+    border-left: none;
+    padding: 1rem;
+    overflow-y: auto;
+    max-height: 600px;
+}
+
+.node-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+}
+
+.node-detail-header h3 {
+    color: #e4e4e7;
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+    word-break: break-word;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: #71717a;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0 0.25rem;
+}
+
+.close-btn:hover {
+    color: #e4e4e7;
+}
+
+.node-detail-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    margin-bottom: 0.6rem;
+}
+
+.field-label {
+    color: #71717a;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.field-value {
+    color: #d4d4d8;
+    font-size: 0.85rem;
+    word-break: break-all;
+}
+
+.field-value.mono {
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 0.8rem;
+}
+
+.node-type-badge {
+    display: inline-block;
+    background: #27272a;
+    color: #a1a1aa;
+    padding: 0.15rem 0.6rem;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+}
+
+.node-detail-section {
+    margin-top: 0.75rem;
+    border-top: 1px solid #27272a;
+    padding-top: 0.6rem;
+}
+
+.node-detail-section h4 {
+    color: #a1a1aa;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.4rem;
+}
+
+.edge-list {
+    list-style: none;
+    font-size: 0.8rem;
+}
+
+.edge-list li {
+    display: flex;
+    gap: 0.4rem;
+    padding: 0.2rem 0;
+    align-items: baseline;
+}
+
+.edge-rel {
+    color: #6366f1;
+    font-size: 0.7rem;
+    font-weight: 600;
+    min-width: 70px;
+}
+
+.edge-name {
+    color: #d4d4d8;
+    word-break: break-word;
+}
+
+.no-edges {
+    color: #52525b;
+    font-size: 0.8rem;
+    margin: 0;
+}
+
+/* ── Graph stats bar ── */
+.graph-stats-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 0.4rem 1rem;
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 0.75rem;
+    font-size: 0.75rem;
+    color: #71717a;
 }
 
 /* Search */

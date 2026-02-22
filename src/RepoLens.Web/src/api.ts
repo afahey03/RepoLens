@@ -4,6 +4,7 @@ import type {
     RepositoryOverview,
     ArchitectureResponse,
     SearchResponse,
+    GraphStatsResponse,
 } from './types';
 
 const BASE_URL = '/api/repository';
@@ -34,5 +35,11 @@ export async function getArchitecture(repoId: string): Promise<ArchitectureRespo
 export async function searchRepository(repoId: string, query: string): Promise<SearchResponse> {
     const res = await fetch(`${BASE_URL}/${repoId}/search?q=${encodeURIComponent(query)}`);
     if (!res.ok) throw new Error(`Search failed: ${res.statusText}`);
+    return res.json();
+}
+
+export async function getGraphStats(repoId: string): Promise<GraphStatsResponse> {
+    const res = await fetch(`${BASE_URL}/${repoId}/architecture/stats`);
+    if (!res.ok) throw new Error(`Failed to fetch graph stats: ${res.statusText}`);
     return res.json();
 }
