@@ -53,8 +53,13 @@ function App() {
 
     return (
         <div className="app">
-            <h1>RepoLens</h1>
-            <p className="subtitle">Understand any GitHub repository in seconds.</p>
+            <div className="app-header">
+                <img src="/logo.svg" alt="RepoLens" className="app-logo" />
+                <div>
+                    <h1>RepoLens</h1>
+                    <p className="subtitle">Understand any GitHub repository in seconds.</p>
+                </div>
+            </div>
 
             <form className="url-form" onSubmit={handleAnalyze}>
                 <input

@@ -4,15 +4,32 @@
     padding: 2rem;
 }
 
+.app-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.app-logo {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+}
+
 .app h1 {
     font-size: 2rem;
     font-weight: 700;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0;
 }
 
 .app .subtitle {
     color: #a1a1aa;
-    margin-bottom: 2rem;
+    margin-bottom: 0;
+}
+
+.app-header+.url-form {
+    margin-top: 1.5rem;
 }
 
 /* URL Input */

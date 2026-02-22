@@ -14,6 +14,9 @@ public static class ServiceCollectionExtensions
         services.AddHttpClient<IRepositoryDownloader, GitHubRepositoryDownloader>();
         services.AddSingleton<ILanguageParser, CSharpParser>();
         services.AddSingleton<ILanguageParser, JavaScriptTypeScriptParser>();
+        services.AddSingleton<ILanguageParser, PythonParser>();
+        services.AddSingleton<ILanguageParser, JavaParser>();
+        services.AddSingleton<ILanguageParser, GoParser>();
         services.AddSingleton<IRepositoryAnalyzer, RepositoryAnalyzer>();
 
         return services;
