@@ -256,12 +256,16 @@ public class RepositoryAnalyzer : IRepositoryAnalyzer
         _logger.LogInformation("Overview complete: {Name} — {Files} files, {Lines} lines, {Summary}",
             overview.Name, overview.TotalFiles, overview.TotalLines, overview.Complexity);
 
+        // 5. Read README for LLM enrichment
+        var readmeContent = ReadReadme(repoPath);
+
         return new FullAnalysisResult
         {
             Files = files,
             Symbols = symbols,
             Graph = graph,
-            Overview = overview
+            Overview = overview,
+            ReadmeContent = readmeContent
         };
     }
 
@@ -351,13 +355,37 @@ public class RepositoryAnalyzer : IRepositoryAnalyzer
             "Incremental analysis complete: {Files} files, {Symbols} symbols, {Nodes} graph nodes",
             currentFiles.Count, mergedSymbols.Count, graph.Nodes.Count);
 
+        var readmeContent = ReadReadme(repoPath);
+
         return new FullAnalysisResult
         {
             Files = currentFiles,
             Symbols = mergedSymbols,
             Graph = graph,
-            Overview = overview
+            Overview = overview,
+            ReadmeContent = readmeContent
         };
+    }
+
+    /// <summary>
+    /// Reads the repository's README file if present (README.md, README.txt, README).
+    /// Returns null if not found. Caps at 10 KB.
+    /// </summary>
+    private static string? ReadReadme(string repoPath)
+    {
+        var candidates = new[] { "README.md", "readme.md", "README.MD", "README.txt", "README", "Readme.md" };
+        foreach (var name in candidates)
+        {
+            var path = Path.Combine(repoPath, name);
+            if (File.Exists(path))
+            {
+                var info = new System.IO.FileInfo(path);
+                if (info.Length > 10 * 1024) // Cap at 10 KB
+                    return File.ReadAllText(path)[..(10 * 1024)];
+                return File.ReadAllText(path);
+            }
+        }
+        return null;
     }
 
     /// <summary>

@@ -3,6 +3,7 @@
 export interface AnalyzeRequest {
     repositoryUrl: string;
     gitHubToken?: string;
+    openAiApiKey?: string;
     forceReanalyze?: boolean;
 }
 
@@ -26,6 +27,7 @@ export interface RepositoryOverview {
     mostConnectedModules: ConnectedModuleInfo[];
     externalDependencies: string[];
     summary: string;
+    summarySource: string;
     complexity: string;
 }
 

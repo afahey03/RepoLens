@@ -25,6 +25,14 @@ function OverviewPanel({ overview }: Props) {
                 <div className="overview-card summary-card" style={{ gridColumn: '1 / -1' }}>
                     <h3>
                         Summary{' '}
+                        {overview.summarySource === 'ai' && (
+                            <span
+                                className="complexity-badge"
+                                style={{ background: '#8b5cf6' }}
+                            >
+                                ✨ AI
+                            </span>
+                        )}
                         <span
                             className="complexity-badge"
                             style={{

@@ -18,6 +18,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ILanguageParser, JavaParser>();
         services.AddSingleton<ILanguageParser, GoParser>();
         services.AddSingleton<IRepositoryAnalyzer, RepositoryAnalyzer>();
+        services.AddHttpClient<ISummaryEnricher, OpenAiSummaryEnricher>();
 
         return services;
     }

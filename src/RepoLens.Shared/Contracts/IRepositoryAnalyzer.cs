@@ -53,4 +53,9 @@ public class FullAnalysisResult
     public required List<SymbolInfo> Symbols { get; init; }
     public required DependencyGraph Graph { get; init; }
     public required RepositoryOverview Overview { get; init; }
+
+    /// <summary>
+    /// Content of the repository's README file (if found), used for LLM summary enrichment.
+    /// </summary>
+    public string? ReadmeContent { get; init; }
 }

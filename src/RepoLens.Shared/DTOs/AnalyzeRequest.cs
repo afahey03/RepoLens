@@ -15,6 +15,13 @@ public class AnalyzeRequest
     public string? GitHubToken { get; set; }
 
     /// <summary>
+    /// Optional OpenAI API key for LLM-powered summary generation.
+    /// If omitted, falls back to the server-side REPOLENS_OPENAI_API_KEY env var.
+    /// Never persisted to disk.
+    /// </summary>
+    public string? OpenAiApiKey { get; set; }
+
+    /// <summary>
     /// When true, forces a fresh download and incremental re-analysis
     /// even if a cached result already exists.
     /// </summary>

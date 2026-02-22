@@ -16,6 +16,7 @@ public class RepositoryController : ControllerBase
     private readonly ISearchEngine _searchEngine;
     private readonly IAnalysisCache _cache;
     private readonly IAnalysisProgressTracker _progress;
+    private readonly ISummaryEnricher _summaryEnricher;
     private readonly ILogger<RepositoryController> _logger;
 
     public RepositoryController(
@@ -24,6 +25,7 @@ public class RepositoryController : ControllerBase
         ISearchEngine searchEngine,
         IAnalysisCache cache,
         IAnalysisProgressTracker progress,
+        ISummaryEnricher summaryEnricher,
         ILogger<RepositoryController> logger)
     {
         _downloader = downloader;
@@ -31,6 +33,7 @@ public class RepositoryController : ControllerBase
         _searchEngine = searchEngine;
         _cache = cache;
         _progress = progress;
+        _summaryEnricher = summaryEnricher;
         _logger = logger;
     }
 
@@ -51,12 +54,50 @@ public class RepositoryController : ControllerBase
         var repoId = GenerateRepoId(request.RepositoryUrl);
 
         // Return cached result immediately (unless force re-analyze requested)
+        // If an OpenAI key is provided and the cached summary is template-only,
+        // kick off background enrichment rather than returning the cached result.
         if (_cache.Has(repoId) && !request.ForceReanalyze)
         {
             var existing = _cache.Get(repoId)!;
-            _searchEngine.BuildIndex(repoId, existing.Symbols, existing.Files);
-            _logger.LogInformation("Returning cached analysis for {RepoId}", repoId);
-            return Ok(new AnalyzeResponse { RepositoryId = repoId, Status = "completed" });
+            var needsEnrichment = !string.IsNullOrWhiteSpace(request.OpenAiApiKey)
+                                  && existing.Overview.SummarySource != "ai";
+
+            if (!needsEnrichment)
+            {
+                _searchEngine.BuildIndex(repoId, existing.Symbols, existing.Files);
+                _logger.LogInformation("Returning cached analysis for {RepoId}", repoId);
+                return Ok(new AnalyzeResponse { RepositoryId = repoId, Status = "completed" });
+            }
+
+            // Background-enrich the cached overview with LLM
+            _logger.LogInformation("Cached analysis found but needs LLM enrichment for {RepoId}", repoId);
+            _progress.Start(repoId);
+            var enrichKey = request.OpenAiApiKey;
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    _progress.Update(repoId, AnalysisStage.Indexing, "Generating AI summary...", 80);
+                    var llmSummary = await _summaryEnricher.EnrichAsync(
+                        existing.Overview, null, enrichKey, CancellationToken.None);
+                    if (llmSummary is not null)
+                    {
+                        existing.Overview.Summary = llmSummary;
+                        existing.Overview.SummarySource = "ai";
+                        _cache.Store(repoId, existing);
+                        _logger.LogInformation("LLM summary enriched for cached {RepoId}", repoId);
+                    }
+                    _searchEngine.BuildIndex(repoId, existing.Symbols, existing.Files);
+                    _progress.Complete(repoId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "LLM enrichment failed for cached {RepoId}", repoId);
+                    _searchEngine.BuildIndex(repoId, existing.Symbols, existing.Files);
+                    _progress.Complete(repoId); // Still complete — just without AI summary
+                }
+            });
+            return Ok(new AnalyzeResponse { RepositoryId = repoId, Status = "analyzing" });
         }
 
         // If already running, return current status
@@ -76,6 +117,7 @@ public class RepositoryController : ControllerBase
         // Fire-and-forget background analysis
         var url = request.RepositoryUrl;
         var token = request.GitHubToken;
+        var openAiKey = request.OpenAiApiKey;
         var prevAnalysis = previousAnalysis;
         _ = Task.Run(async () =>
         {
@@ -109,6 +151,17 @@ public class RepositoryController : ControllerBase
                 _progress.Update(repoId, AnalysisStage.Indexing, "Building search index...", 80);
                 _searchEngine.BuildIndex(repoId, analysis.Symbols, analysis.Files);
                 _logger.LogInformation("Search index built for {RepoId}", repoId);
+
+                // Stage 3b: LLM summary enrichment (optional)
+                _progress.Update(repoId, AnalysisStage.Indexing, "Generating AI summary...", 90);
+                var llmSummary = await _summaryEnricher.EnrichAsync(
+                    analysis.Overview, analysis.ReadmeContent, openAiKey, CancellationToken.None);
+                if (llmSummary is not null)
+                {
+                    analysis.Overview.Summary = llmSummary;
+                    analysis.Overview.SummarySource = "ai";
+                    _logger.LogInformation("LLM summary applied for {RepoId}", repoId);
+                }
 
                 // Stage 4: Cache
                 _cache.Store(repoId, new CachedAnalysis

@@ -11,7 +11,8 @@ type Tab = 'overview' | 'architecture' | 'search';
 function App() {
     const [repoUrl, setRepoUrl] = useState('');
     const [gitHubToken, setGitHubToken] = useState('');
-    const [showToken, setShowToken] = useState(false);
+    const [openAiKey, setOpenAiKey] = useState('');
+    const [showSettings, setShowSettings] = useState(false);
     const [repoId, setRepoId] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [progress, setProgress] = useState<AnalysisProgress | null>(null);
@@ -48,6 +49,7 @@ function App() {
                 repoUrl.trim(),
                 gitHubToken.trim() || undefined,
                 forceReanalyze || undefined,
+                openAiKey.trim() || undefined,
             );
             const id = result.repositoryId;
             setRepoId(id);
@@ -143,12 +145,13 @@ function App() {
                 <button
                     type="button"
                     className="token-toggle"
-                    onClick={() => setShowToken(!showToken)}
+                    onClick={() => setShowSettings(!showSettings)}
                 >
-                    {showToken ? 'Hide' : 'Private repo?'} {showToken ? '\u25B2' : '\u25BC'}
+                    {showSettings ? 'Hide settings' : 'Settings'} {showSettings ? '\u25B2' : '\u25BC'}
                 </button>
-                {showToken && (
+                {showSettings && (
                     <div className="token-input-wrapper">
+                        <label className="settings-label">GitHub Token (private repos)</label>
                         <input
                             type="password"
                             className="token-input"
@@ -164,6 +167,24 @@ function App() {
                                 GitHub Settings &rarr; Tokens
                             </a>
                             . Never stored — used only for this download.
+                        </p>
+
+                        <label className="settings-label" style={{ marginTop: '1rem' }}>OpenAI API Key (AI summaries)</label>
+                        <input
+                            type="password"
+                            className="token-input"
+                            placeholder="sk-... (optional)"
+                            value={openAiKey}
+                            onChange={(e) => setOpenAiKey(e.target.value)}
+                            disabled={loading}
+                            autoComplete="off"
+                        />
+                        <p className="token-hint">
+                            Enables richer LLM-generated summaries. Get a key at{' '}
+                            <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">
+                                OpenAI &rarr; API Keys
+                            </a>
+                            . Never stored — used only for this analysis.
                         </p>
                     </div>
                 )}

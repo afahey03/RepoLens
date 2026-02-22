@@ -32,6 +32,9 @@ public class RepositoryOverview
     /// <summary>Auto-generated plain-English summary of the repository.</summary>
     public string Summary { get; set; } = "";
 
+    /// <summary>How the summary was generated: "template" or "ai".</summary>
+    public string SummarySource { get; set; } = "template";
+
     /// <summary>Complexity label: Tiny, Small, Medium, Large, Huge.</summary>
     public string Complexity { get; set; } = "";
 }

@@ -136,6 +136,14 @@
     text-decoration: underline;
 }
 
+.settings-label {
+    display: block;
+    color: #a1a1aa;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+}
+
 /* Progress Bar */
 .progress-container {
     margin-bottom: 1.5rem;
