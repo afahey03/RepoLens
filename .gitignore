@@ -1,0 +1,67 @@
+## Documents
+/docs
+
+## .NET
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+bld/
+[Ll]og/
+[Ll]ogs/
+*.nupkg
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+TestResults/
+
+## NuGet
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+
+## Visual Studio
+.vs/
+*.rsuser
+*.suo
+*.user
+*.sln.docstates
+launchSettings.json
+
+## Rider / JetBrains
+.idea/
+*.sln.iml
+
+## Node / Frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+.env
+.env.*
+
+## Vite
+*.sw?
+
+## TypeScript
+*.tsbuildinfo
+
+## OS files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+## Temp
+*.tmp
+*.temp
+*.log

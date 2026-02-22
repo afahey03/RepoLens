@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="RepoLens.Analysis/RepoLens.Analysis.csproj" />
+  <Project Path="RepoLens.Api/RepoLens.Api.csproj" />
+  <Project Path="RepoLens.Engine/RepoLens.Engine.csproj" />
+  <Project Path="RepoLens.Shared/RepoLens.Shared.csproj" />
+</Solution>

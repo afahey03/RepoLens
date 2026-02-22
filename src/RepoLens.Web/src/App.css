@@ -1,0 +1,231 @@
+.app {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.app h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.app .subtitle {
+    color: #a1a1aa;
+    margin-bottom: 2rem;
+}
+
+/* URL Input */
+.url-form {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+}
+
+.url-form input {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid #27272a;
+    background: #18181b;
+    color: #e4e4e7;
+    font-size: 1rem;
+}
+
+.url-form input:focus {
+    outline: none;
+    border-color: #818cf8;
+}
+
+.url-form button {
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    border: none;
+    background: #6366f1;
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.url-form button:hover {
+    background: #4f46e5;
+}
+
+.url-form button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Tabs */
+.tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid #27272a;
+    margin-bottom: 1.5rem;
+}
+
+.tabs button {
+    padding: 0.75rem 1.25rem;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: #a1a1aa;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.tabs button.active {
+    color: #e4e4e7;
+    border-bottom-color: #6366f1;
+}
+
+/* Overview */
+.overview {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.overview-card {
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+}
+
+.overview-card h3 {
+    color: #a1a1aa;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.75rem;
+}
+
+.overview-card .value {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.language-bar {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.language-tag {
+    background: #27272a;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.85rem;
+}
+
+.folder-list,
+.entry-list,
+.framework-list {
+    list-style: none;
+    font-size: 0.9rem;
+    color: #d4d4d8;
+}
+
+.folder-list li,
+.entry-list li,
+.framework-list li {
+    padding: 0.2rem 0;
+}
+
+/* Architecture Graph */
+.architecture-graph {
+    width: 100%;
+    height: 500px;
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 0.75rem;
+}
+
+/* Search */
+.search-form {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.search-form input {
+    flex: 1;
+    padding: 0.6rem 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid #27272a;
+    background: #18181b;
+    color: #e4e4e7;
+    font-size: 0.95rem;
+}
+
+.search-form input:focus {
+    outline: none;
+    border-color: #818cf8;
+}
+
+.search-form button {
+    padding: 0.6rem 1.25rem;
+    border-radius: 0.5rem;
+    border: none;
+    background: #6366f1;
+    color: white;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.search-results {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.search-result-card {
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 0.75rem;
+    padding: 1rem;
+}
+
+.search-result-card .file-path {
+    font-size: 0.85rem;
+    color: #818cf8;
+    margin-bottom: 0.25rem;
+}
+
+.search-result-card .symbol-name {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.search-result-card .snippet {
+    font-size: 0.85rem;
+    color: #a1a1aa;
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+}
+
+.search-result-card .score {
+    font-size: 0.75rem;
+    color: #71717a;
+    margin-top: 0.5rem;
+}
+
+/* Status */
+.status {
+    text-align: center;
+    padding: 3rem;
+    color: #a1a1aa;
+}
+
+.error {
+    color: #f87171;
+    margin-bottom: 1rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #71717a;
+}

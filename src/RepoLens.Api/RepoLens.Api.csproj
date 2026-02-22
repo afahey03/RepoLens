@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\RepoLens.Analysis\RepoLens.Analysis.csproj" />
+    <ProjectReference Include="..\RepoLens.Engine\RepoLens.Engine.csproj" />
+    <ProjectReference Include="..\RepoLens.Shared\RepoLens.Shared.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>

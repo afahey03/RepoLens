@@ -1,0 +1,21 @@
+using Microsoft.Extensions.DependencyInjection;
+using RepoLens.Analysis.Parsers;
+using RepoLens.Shared.Contracts;
+
+namespace RepoLens.Analysis;
+
+/// <summary>
+/// Registers Analysis services with the DI container.
+/// </summary>
+public static class ServiceCollectionExtensions
+{
+    public static IServiceCollection AddAnalysisServices(this IServiceCollection services)
+    {
+        services.AddHttpClient<IRepositoryDownloader, GitHubRepositoryDownloader>();
+        services.AddSingleton<ILanguageParser, CSharpParser>();
+        services.AddSingleton<ILanguageParser, JavaScriptTypeScriptParser>();
+        services.AddSingleton<IRepositoryAnalyzer, RepositoryAnalyzer>();
+
+        return services;
+    }
+}
