@@ -19,6 +19,16 @@ RepoLens analyzes public GitHub repositories and generates an interactive overvi
 
 ---
 
+## Pictures
+
+<img width="1011" height="807" alt="image" src="https://github.com/user-attachments/assets/37e43c6a-5b2b-4da5-a4bf-1ef5fbd9dfff" />
+
+<img width="996" height="905" alt="image" src="https://github.com/user-attachments/assets/5a7a3f65-0533-42fb-915f-b84ac090fbf5" />
+
+<img width="1074" height="823" alt="image" src="https://github.com/user-attachments/assets/49c5a94a-62b1-43b1-9957-a70300718923" />
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
