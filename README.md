@@ -44,8 +44,8 @@ RepoLens analyzes public (and private, with a PAT) GitHub repositories and gener
 | Layer | Technology |
 |-------|-----------|
 | Backend | .NET 8 / ASP.NET Core Web API |
-| Frontend | React 19, Vite 6, TypeScript 5.6 |
-| Graph (Web) | @xyflow/react 12, @dagrejs/dagre |
+| Frontend | React, Vite, TypeScript |
+| Graph (Web) | @xyflow/react, @dagrejs/dagre |
 | Graph (VS Code) | SVG force-directed layout |
 | C# Parsing | Microsoft.CodeAnalysis (Roslyn) |
 | Search | Custom BM25 inverted index |
