@@ -9,13 +9,19 @@ RUN npm run build
 # ── Stage 2: Build .NET API ──
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS backend-build
 WORKDIR /src
-COPY src/RepoLens.slnx .
+
+# Copy csproj files first for layer-cached restore
 COPY src/RepoLens.Api/RepoLens.Api.csproj RepoLens.Api/
 COPY src/RepoLens.Analysis/RepoLens.Analysis.csproj RepoLens.Analysis/
 COPY src/RepoLens.Engine/RepoLens.Engine.csproj RepoLens.Engine/
 COPY src/RepoLens.Shared/RepoLens.Shared.csproj RepoLens.Shared/
-RUN dotnet restore RepoLens.slnx
-COPY src/ .
+RUN dotnet restore RepoLens.Api/RepoLens.Api.csproj
+
+# Copy full source and publish
+COPY src/RepoLens.Api/ RepoLens.Api/
+COPY src/RepoLens.Analysis/ RepoLens.Analysis/
+COPY src/RepoLens.Engine/ RepoLens.Engine/
+COPY src/RepoLens.Shared/ RepoLens.Shared/
 RUN dotnet publish RepoLens.Api/RepoLens.Api.csproj -c Release -o /app/publish --no-restore
 
 # ── Stage 3: Runtime ──
@@ -33,7 +39,9 @@ RUN mkdir -p /app/cache
 ENV REPOLENS_CACHE_DIR=/app/cache
 
 EXPOSE 5000
-ENV ASPNETCORE_URLS=http://+:5000
+# Default to port 5000; Render overrides via PORT env var
+ENV PORT=5000
 ENV ASPNETCORE_ENVIRONMENT=Production
 
-ENTRYPOINT ["dotnet", "RepoLens.Api.dll"]
+# Shell form so $PORT is expanded at runtime
+CMD dotnet RepoLens.Api.dll --urls "http://+:$PORT"
