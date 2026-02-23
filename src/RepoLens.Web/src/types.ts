@@ -109,3 +109,47 @@ export interface AnalysisProgress {
     percentComplete: number;
     error?: string;
 }
+
+/* ── PR Impact Analysis ─────────────────────────────────── */
+
+export interface PrImpactRequest {
+    prNumber: number;
+    gitHubToken?: string;
+}
+
+export interface PrImpactResponse {
+    prNumber: number;
+    totalFilesChanged: number;
+    totalAdditions: number;
+    totalDeletions: number;
+    changedFiles: PrFileImpact[];
+    affectedSymbols: PrSymbolImpact[];
+    affectedEdges: PrEdgeImpact[];
+    downstreamFiles: string[];
+    languagesTouched: string[];
+}
+
+export interface PrFileImpact {
+    filePath: string;
+    status: string;
+    additions: number;
+    deletions: number;
+    language: string | null;
+    previousFilePath: string | null;
+    symbolCount: number;
+}
+
+export interface PrSymbolImpact {
+    name: string;
+    kind: string;
+    filePath: string;
+    line: number;
+    parentSymbol: string | null;
+}
+
+export interface PrEdgeImpact {
+    source: string;
+    target: string;
+    relationship: string;
+    impactSide: string;
+}

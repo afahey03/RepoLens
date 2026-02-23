@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using RepoLens.Analysis;
 using RepoLens.Engine;
 using RepoLens.Shared.Contracts;
 using RepoLens.Shared.DTOs;
@@ -17,6 +18,8 @@ public class RepositoryController : ControllerBase
     private readonly IAnalysisCache _cache;
     private readonly IAnalysisProgressTracker _progress;
     private readonly ISummaryEnricher _summaryEnricher;
+    private readonly IPrDiffFetcher _prDiffFetcher;
+    private readonly PrImpactAnalyzer _prImpactAnalyzer;
     private readonly ILogger<RepositoryController> _logger;
 
     public RepositoryController(
@@ -26,6 +29,8 @@ public class RepositoryController : ControllerBase
         IAnalysisCache cache,
         IAnalysisProgressTracker progress,
         ISummaryEnricher summaryEnricher,
+        IPrDiffFetcher prDiffFetcher,
+        PrImpactAnalyzer prImpactAnalyzer,
         ILogger<RepositoryController> logger)
     {
         _downloader = downloader;
@@ -34,6 +39,8 @@ public class RepositoryController : ControllerBase
         _cache = cache;
         _progress = progress;
         _summaryEnricher = summaryEnricher;
+        _prDiffFetcher = prDiffFetcher;
+        _prImpactAnalyzer = prImpactAnalyzer;
         _logger = logger;
     }
 
@@ -399,6 +406,65 @@ public class RepositoryController : ControllerBase
                 FilePath = s.FilePath
             }).ToList()
         });
+    }
+
+    /// <summary>
+    /// POST /api/repository/{id}/pr-impact
+    /// Analyzes the impact of a pull request against the cached analysis.
+    /// The repository must already be analyzed.
+    /// </summary>
+    [HttpPost("{id}/pr-impact")]
+    public async Task<ActionResult<PrImpactResponse>> AnalyzePrImpact(
+        string id,
+        [FromBody] PrImpactRequest request)
+    {
+        if (request.PrNumber <= 0)
+            return BadRequest("PR number must be a positive integer.");
+
+        var cached = _cache.Get(id);
+        if (cached is null)
+            return NotFound("Repository not analyzed yet. Analyze the repository first.");
+
+        // Parse owner/repo from the cached overview URL
+        var repoUrl = cached.Overview.Url;
+        var (owner, repo) = ParseOwnerRepo(repoUrl);
+        if (owner is null || repo is null)
+            return BadRequest("Could not determine owner/repo from the analyzed repository URL.");
+
+        try
+        {
+            var changedFiles = await _prDiffFetcher.FetchDiffAsync(
+                owner, repo, request.PrNumber, request.GitHubToken);
+
+            var impact = _prImpactAnalyzer.Analyze(request.PrNumber, changedFiles, cached);
+            return Ok(impact);
+        }
+        catch (HttpRequestException ex) when (ex.Message.Contains("404"))
+        {
+            return NotFound($"Pull request #{request.PrNumber} was not found in {owner}/{repo}. Please check the PR number and try again.");
+        }
+        catch (HttpRequestException ex) when (ex.Message.Contains("401") || ex.Message.Contains("403"))
+        {
+            return StatusCode(403, $"Access denied for PR #{request.PrNumber}. If this is a private repository, provide a valid GitHub token with repo access.");
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Failed to fetch PR #{Pr} diff", request.PrNumber);
+            return StatusCode(502, $"Failed to fetch PR diff from GitHub. Please try again later.");
+        }
+    }
+
+    /// <summary>
+    /// Extracts owner and repo from a GitHub URL.
+    /// </summary>
+    private static (string? Owner, string? Repo) ParseOwnerRepo(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return (null, null);
+        var trimmed = url.Trim().TrimEnd('/');
+        if (!Uri.TryCreate(trimmed, UriKind.Absolute, out var uri)) return (null, null);
+        var segments = uri.AbsolutePath.Trim('/').Split('/');
+        if (segments.Length < 2) return (null, null);
+        return (segments[0], segments[1].Replace(".git", "", StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>

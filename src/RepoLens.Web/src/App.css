@@ -1249,3 +1249,236 @@
     padding: 4rem 2rem;
     color: #71717a;
 }
+
+/* ── PR Impact Panel ──────────────────────────────── */
+
+.pr-impact-panel {
+    padding: 1.5rem 0;
+}
+
+.pr-input-form {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.pr-input-form button {
+    padding: 0.6rem 1.25rem;
+    border-radius: 8px;
+    border: none;
+    background: #6366f1;
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pr-input-form button:hover:not(:disabled) {
+    background: #4f46e5;
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.35);
+}
+
+.pr-input-form button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.pr-number-input {
+    width: 200px;
+    padding: 0.6rem 1rem;
+    border-radius: 8px;
+    border: 1px solid #3f3f46;
+    background: #18181b;
+    color: #fafafa;
+    font-size: 0.95rem;
+}
+
+.pr-number-input::placeholder {
+    color: #71717a;
+}
+
+.pr-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.pr-stat-card {
+    background: #27272a;
+    border-radius: 10px;
+    padding: 1rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.pr-stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.pr-stat-label {
+    font-size: 0.8rem;
+    color: #a1a1aa;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.pr-section {
+    margin-bottom: 1.5rem;
+}
+
+.pr-section h3 {
+    margin: 0 0 0.75rem;
+    font-size: 1rem;
+    color: #e4e4e7;
+}
+
+.pr-lang-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.pr-lang-tag {
+    background: #3b82f620;
+    color: #93c5fd;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.pr-file-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.pr-file-item {
+    background: #27272a;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.pr-file-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+}
+
+.pr-file-header:hover {
+    background: #3f3f4640;
+}
+
+.pr-file-status {
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #fff;
+    text-transform: uppercase;
+    flex-shrink: 0;
+}
+
+.pr-file-path {
+    flex: 1;
+    font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+    word-break: break-all;
+}
+
+.pr-file-rename {
+    color: #71717a;
+    font-size: 0.75rem;
+}
+
+.pr-file-delta {
+    font-family: 'SF Mono', 'Cascadia Code', monospace;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+}
+
+.pr-file-lang {
+    color: #a1a1aa;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
+.pr-file-sym-count {
+    color: #8b5cf6;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
+.pr-symbol-list {
+    padding: 0.25rem 1rem 0.5rem 2.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    border-top: 1px solid #3f3f46;
+}
+
+.pr-symbol-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    padding: 0.2rem 0;
+}
+
+.pr-symbol-kind {
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.pr-symbol-name {
+    font-family: 'SF Mono', 'Cascadia Code', monospace;
+}
+
+.pr-symbol-parent {
+    color: #71717a;
+}
+
+.pr-symbol-line {
+    color: #71717a;
+    font-size: 0.7rem;
+    margin-left: auto;
+}
+
+.pr-downstream-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.pr-downstream-item {
+    background: #27272a;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-family: 'SF Mono', 'Cascadia Code', monospace;
+    font-size: 0.8rem;
+    word-break: break-all;
+}
+
+.pr-hint {
+    color: #71717a;
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+}
+
+.pr-empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: #71717a;
+}

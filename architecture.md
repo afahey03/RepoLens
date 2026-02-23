@@ -31,6 +31,7 @@ Endpoints:
 * GET /api/repository/{id}/architecture/stats — graph aggregate stats (node/edge type counts, depth, root/leaf nodes)
 * GET /api/repository/{id}/search?q=&kinds=&skip=&take= — BM25-ranked symbol/file search with kind filtering and pagination
 * GET /api/repository/{id}/suggest?q= — autocomplete suggestions for symbols and files
+* POST /api/repository/{id}/pr-impact — analyze impact of a pull request (changed files, affected symbols, downstream dependencies)
 
 Error handling returns 400, 422, or 500 with descriptive messages.
 
@@ -39,6 +40,21 @@ Error handling returns 400, 422, or 500 with descriptive messages.
 ## RepoLens.Analysis
 
 Core analysis library. Contains:
+
+### GitHubPrDiffFetcher (IPrDiffFetcher)
+
+* Fetches file-level PR diff from GitHub REST API v3 (`/repos/{owner}/{repo}/pulls/{number}/files`)
+* Supports pagination for PRs with many changed files
+* Returns file path, status (added/removed/modified/renamed), additions, deletions, previous path (renames), and patch text
+* Supports GitHub PAT for private repos and higher rate limits
+
+### PrImpactAnalyzer
+
+* Cross-references PR diff against cached repository analysis
+* Identifies affected symbols (classes, methods, properties, etc.) defined in changed files
+* Identifies affected graph edges (imports, inheritance, containment) connected to changed files/symbols
+* Computes downstream dependencies — files that import changed files (ripple effect)
+* Reports languages touched, total additions/deletions, and per-file symbol counts
 
 ### GitHubRepositoryDownloader
 
@@ -87,13 +103,16 @@ Core analysis library. Contains:
 
 Each parser extracts symbols and builds dependency graph nodes/edges.
 
-**CSharpParser** — regex + heuristic line-by-line analysis of .cs files:
+**RoslynCSharpParser** — AST-level parsing via Microsoft.CodeAnalysis (Roslyn):
 
-* Extracts: namespaces, classes, interfaces, records, structs, enums, methods, properties, using directives
+* Uses `CSharpSyntaxTree.ParseText` and a `CSharpSyntaxWalker` for full syntax-tree walking
+* Extracts: namespaces (block + file-scoped), classes, interfaces, records, structs, enums, methods, constructors, properties, using directives
 * Graph nodes: Namespace nodes, Class/Interface nodes
-* Graph edges: File → Imports → Namespace, Namespace → Contains → Class, Class → Inherits/Implements → Base type, File → Contains → Type
+* Graph edges: File → Imports → Namespace, Namespace → Contains → Class, Class → Inherits/Implements → Base type (from `BaseListSyntax`), File → Contains → Type
+* Handles nested types, generic constraints, primary constructors, and multi-line declarations correctly
 * Filters import edges to only reference repo-internal namespaces
 * Caches parse results to avoid double work
+* Replaces the earlier regex-based CSharpParser (retained but no longer wired)
 
 **JavaScriptTypeScriptParser** — regex-based analysis of .ts/.tsx/.js/.jsx/.mjs/.cjs files:
 
@@ -159,7 +178,7 @@ Shared models and contracts used across all projects:
 * **SymbolInfo** — Name, Kind (Class/Interface/Method/Property/Function/Variable/Import/Namespace/Module), FilePath, Line, ParentSymbol
 * **SearchResult** — FilePath, Symbol, Snippet, Score, Line
 * **FileInfo** — RelativePath, Language, SizeBytes, LineCount, ContentHash (SHA-256)
-* **RepositoryOverview** — Name, Url, LanguageBreakdown, LanguageLineBreakdown, TotalFiles, TotalLines, DetectedFrameworks, EntryPoints, TopLevelFolders, SymbolCounts, KeyTypes, MostConnectedModules, ExternalDependencies, Summary, Complexity
+* **RepositoryOverview** — Name, Url, LanguageBreakdown, LanguageLineBreakdown, TotalFiles, TotalLines, DetectedFrameworks, EntryPoints, TopLevelFolders, SymbolCounts, KeyTypes, MostConnectedModules, ExternalDependencies, Summary, SummarySource ("template" | "ai"), Complexity
 * **KeyTypeInfo** — Name, FilePath, Kind, MemberCount (classes/interfaces ranked by member count)
 * **ConnectedModuleInfo** — Name, FilePath, IncomingEdges, OutgoingEdges (modules with most import traffic)
 
@@ -171,11 +190,18 @@ Shared models and contracts used across all projects:
 * SearchResponse (Query, TotalResults, Skip, Take, AvailableKinds, Results) — paginated with kind facets
 * SuggestResponse (Prefix, Suggestions) / SearchSuggestionDto
 
+* **PrImpactRequest** — PrNumber, GitHubToken (optional)
+* **PrImpactResponse** — PrNumber, TotalFilesChanged, TotalAdditions, TotalDeletions, ChangedFiles, AffectedSymbols, AffectedEdges, DownstreamFiles, LanguagesTouched
+* **PrFileImpact** — FilePath, Status, Additions, Deletions, Language, PreviousFilePath, SymbolCount
+* **PrSymbolImpact** — Name, Kind, FilePath, Line, ParentSymbol
+* **PrEdgeImpact** — Source, Target, Relationship, ImpactSide
+
 ### Contracts
 
 * IRepositoryDownloader — DownloadAsync(url)
 * IRepositoryAnalyzer — ScanFilesAsync, ExtractSymbolsAsync, BuildDependencyGraphAsync, GenerateOverviewAsync, AnalyzeFullAsync
 * ISearchEngine — BuildIndex, Search
+* IPrDiffFetcher — FetchDiffAsync(owner, repo, prNumber)
 
 ---
 
@@ -212,13 +238,20 @@ Explorer (tabbed)
   * Query term highlighting in symbol names and snippets
   * Pagination controls (prev/next) for large result sets
   * Welcome state with example query buttons
+* **PR Impact Panel** — analyze pull request impact against the repository's codebase:
+  * PR number input with analyze button
+  * Summary stats grid (files changed, additions, deletions, symbols affected, downstream files, edges affected)
+  * Languages touched tags
+  * Changed file list with status badges, line delta, and expandable symbol lists
+  * Downstream dependency list — files that import changed files
+  * Color-coded symbol kind badges within each file
 
 ---
 
 # Design Principles
 
 * Clear separation of concerns (download → scan → parse → graph → index → serve)
-* No heavy AI dependencies — regex/heuristic parsers for symbol extraction
+* Optional AI enrichment — LLM-powered summaries via OpenAI-compatible API, with graceful fallback
 * Graph-first architecture — everything maps to nodes and edges
 * Single-pass analysis — files scanned once, results reused everywhere
 * Performance-aware — file size limits, directory filtering, cached parse results
@@ -231,16 +264,16 @@ Explorer (tabbed)
 * **Backend**: .NET 8, ASP.NET Core Web API, C#
 * **Frontend**: React 19, Vite 6, TypeScript 5.6, @xyflow/react 12
 * **Search**: BM25 in-memory inverted index
-* **Parsing**: Regex + heuristic text analysis (no Roslyn/AST dependency in MVP)
+* **Parsing**: Roslyn AST for C# (Microsoft.CodeAnalysis.CSharp 4.12), regex for JS/TS/Python/Java/Go
 * **Solution format**: .slnx (newer .NET solution format)
 
 ---
 
 # Future Extensions
 
-* Roslyn-based deep C# parsing (AST-level accuracy)
-* GitHub PR integration
 * VS Code extension
-* Python, Go, Java, Rust parser implementations
-* Incremental indexing and persistent caching
-* Progressive streaming for large repositories
+* Rust, Ruby, PHP parser implementations
+* Export capabilities (SVG, PNG, PDF, CSV)
+* WebSocket streaming (replace polling)
+* Repository comparison
+* CI integration (GitHub Action for PRs)

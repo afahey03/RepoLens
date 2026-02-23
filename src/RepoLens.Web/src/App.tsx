@@ -4,9 +4,10 @@ import type { RepositoryOverview, ArchitectureResponse, GraphStatsResponse, Anal
 import OverviewPanel from './components/OverviewPanel';
 import ArchitectureGraph from './components/ArchitectureGraph';
 import SearchPanel from './components/SearchPanel';
+import PrImpactPanel from './components/PrImpactPanel';
 import './App.css';
 
-type Tab = 'overview' | 'architecture' | 'search';
+type Tab = 'overview' | 'architecture' | 'search' | 'pr-impact';
 
 function App() {
     const [repoUrl, setRepoUrl] = useState('');
@@ -226,6 +227,12 @@ function App() {
                             >
                                 Search
                             </button>
+                            <button
+                                className={activeTab === 'pr-impact' ? 'active' : ''}
+                                onClick={() => setActiveTab('pr-impact')}
+                            >
+                                PR Impact
+                            </button>
                         </div>
                         <button
                             className="reanalyze-btn"
@@ -242,6 +249,9 @@ function App() {
                     )}
                     {activeTab === 'search' && repoId && (
                         <SearchPanel repoId={repoId} />
+                    )}
+                    {activeTab === 'pr-impact' && repoId && (
+                        <PrImpactPanel repoId={repoId} gitHubToken={gitHubToken.trim() || undefined} />
                     )}
                 </>
             )}

@@ -19,6 +19,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ILanguageParser, GoParser>();
         services.AddSingleton<IRepositoryAnalyzer, RepositoryAnalyzer>();
         services.AddHttpClient<ISummaryEnricher, OpenAiSummaryEnricher>();
+        services.AddHttpClient<IPrDiffFetcher, GitHubPrDiffFetcher>();
+        services.AddSingleton<PrImpactAnalyzer>();
 
         return services;
     }

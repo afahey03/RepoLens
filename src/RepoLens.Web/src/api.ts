@@ -7,6 +7,8 @@ import type {
     GraphStatsResponse,
     SuggestResponse,
     AnalysisProgress,
+    PrImpactRequest,
+    PrImpactResponse,
 } from './types';
 
 const BASE_URL = '/api/repository';
@@ -75,5 +77,28 @@ export async function getGraphStats(repoId: string): Promise<GraphStatsResponse>
 export async function getProgress(repoId: string): Promise<AnalysisProgress> {
     const res = await fetch(`${BASE_URL}/${repoId}/progress`);
     if (!res.ok) throw new Error(`Failed to fetch progress: ${res.statusText}`);
+    return res.json();
+}
+
+export async function analyzePrImpact(
+    repoId: string,
+    prNumber: number,
+    gitHubToken?: string,
+): Promise<PrImpactResponse> {
+    const body: PrImpactRequest = { prNumber };
+    if (gitHubToken) body.gitHubToken = gitHubToken;
+    const res = await fetch(`${BASE_URL}/${repoId}/pr-impact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+        let text = await res.text();
+        // ASP.NET may JSON-encode the error string (wrapped in quotes)
+        if (text.startsWith('"') && text.endsWith('"')) {
+            try { text = JSON.parse(text); } catch { /* keep as-is */ }
+        }
+        throw new Error(text || `PR impact analysis failed: ${res.statusText}`);
+    }
     return res.json();
 }
