@@ -75,11 +75,58 @@ public class RepositoryAnalyzer : IRepositoryAnalyzer
         [".java"] = "Java",
         [".rs"] = "Rust",
         [".rb"] = "Ruby",
+        [".rake"] = "Ruby",
+        [".gemspec"] = "Ruby",
         [".php"] = "PHP",
         [".sql"] = "SQL",
         [".sh"] = "Shell",
         [".ps1"] = "PowerShell",
         [".dockerfile"] = "Dockerfile",
+
+        // C / C++
+        [".c"] = "C",
+        [".h"] = "C",
+        [".cpp"] = "C++",
+        [".cxx"] = "C++",
+        [".cc"] = "C++",
+        [".hpp"] = "C++",
+        [".hxx"] = "C++",
+        [".hh"] = "C++",
+
+        // Swift
+        [".swift"] = "Swift",
+
+        // Scala
+        [".scala"] = "Scala",
+        [".sc"] = "Scala",
+
+        // Kotlin
+        [".kt"] = "Kotlin",
+        [".kts"] = "Kotlin",
+
+        // Dart
+        [".dart"] = "Dart",
+
+        // Lua
+        [".lua"] = "Lua",
+
+        // Perl
+        [".pl"] = "Perl",
+        [".pm"] = "Perl",
+        [".t"] = "Perl",
+
+        // R
+        [".r"] = "R",
+        [".R"] = "R",
+        [".Rmd"] = "R",
+
+        // Haskell
+        [".hs"] = "Haskell",
+        [".lhs"] = "Haskell",
+
+        // Elixir
+        [".ex"] = "Elixir",
+        [".exs"] = "Elixir",
     };
 
     /// <summary>

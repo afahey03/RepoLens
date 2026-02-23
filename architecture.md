@@ -84,7 +84,7 @@ Core analysis library. Contains:
   * Reuses cached symbols for unchanged files; re-extracts only for files with different hashes
   * Merges cached and fresh symbols, then rebuilds graph and overview from merged data
   * If no files changed, returns cached analysis immediately (fast path)
-* File scanning recognizes 30+ extensions across C#, TypeScript, JavaScript, Python, Go, Java, Rust, Ruby, PHP, and more
+* File scanning recognizes 60+ extensions across C#, TypeScript, JavaScript, Python, Go, Java, C, C++, Swift, Rust, SQL, Scala, Kotlin, PHP, Ruby, Dart, Lua, Perl, R, Haskell, Elixir, and more
 * Skips binary files, hidden directories, and build output
 * Detects frameworks: .NET, ASP.NET Core, Node.js, TypeScript, React, Vue, Angular, Docker
 * Identifies entry points (Program.cs, index.ts, main.py, etc.)
@@ -145,6 +145,94 @@ Each parser extracts symbols and builds dependency graph nodes/edges.
 * Graph edges: Module → Contains → Struct/Interface/Function, Module → Imports → Module
 * Reads `go.mod` to detect the module path for resolving internal imports
 * Receiver methods stored with ParentSymbol set to the receiver type name
+
+**CParser** — regex-based analysis of .c/.h files:
+
+* Extracts: #include directives, struct/union/enum definitions, typedefs, function definitions, #define macros
+* Resolves #include to repo-internal files; skips standard library includes
+* Filters false positives with `IsValidCFunctionName` keyword list
+* Tracks block comment state to avoid false matches
+
+**CppParser** — regex-based analysis of .cpp/.cxx/.cc/.hpp/.hxx/.hh files:
+
+* Extracts: #include, namespace declarations, classes/structs with inheritance chains, enum/enum class, Class::Method patterns, top-level functions, using directives, #define
+* `IsCppKeyword` filter excludes C++ reserved words from function matches
+* Builds Inherits edges from comma-separated base class lists
+
+**SwiftParser** — regex-based analysis of .swift files:
+
+* Extracts: import statements, classes, structs, enums, protocols, extensions, functions, properties (var/let), typealiases
+* First superclass → Inherits edge; remaining conformances → Implements edges
+* Distinguishes methods (inside types) from top-level functions via scope tracking
+
+**RustParser** — regex-based analysis of .rs files:
+
+* Extracts: use/mod declarations, structs, enums, traits (with super-trait chains via +), impl blocks (impl Trait for Type), fn, type aliases, const/static, macro_rules!
+* Tracks `currentImplType` to attribute methods to the correct struct
+* Resolves mod declarations (foo.rs and foo/mod.rs) and crate:: imports to repo files
+
+**SqlParser** — regex-based analysis of .sql files:
+
+* Extracts: CREATE TABLE/VIEW/INDEX/FUNCTION/PROCEDURE/TRIGGER/TYPE, ALTER TABLE
+* Case-insensitive regex; supports OR REPLACE, IF NOT EXISTS, TEMPORARY, MATERIALIZED VIEW, schema-prefixed names
+
+**ScalaParser** — regex-based analysis of .scala/.sc files:
+
+* Extracts: package declarations, imports, classes, case classes, objects, case objects, traits, def, val/var, type aliases
+* extends → Inherits edges; with → Implements edges
+* Dot-separated import resolution to file paths
+
+**KotlinParser** — regex-based analysis of .kt/.kts files:
+
+* Extracts: package declarations, imports, classes (data/sealed/inner/annotation/abstract/open), objects, companion objects, interfaces, enum classes, functions (suspend/inline/etc.), properties (val/var), typealiases
+* Smart inheritance detection: constructor call syntax → Inherits; otherwise → Implements
+
+**PhpParser** — regex-based analysis of .php files:
+
+* Extracts: namespace declarations, use imports, require/include(_once), classes, interfaces, traits, enums, functions/methods, constants
+* Brace-depth tracking for class scope detection
+* PSR-style namespace→file resolution and require/include path resolution
+
+**RubyParser** — regex-based analysis of .rb/.rake/.gemspec files:
+
+* Extracts: require/require_relative, modules, classes (with < inheritance), methods (def/self.def), attr_accessor/reader/writer, constants
+* Module inclusion (include) → Implements edges
+* Resolves require/require_relative to repo-internal .rb files
+
+**DartParser** — regex-based analysis of .dart files:
+
+* Extracts: import/export/part directives, library declarations, classes (with extends/with/implements), mixins, enums, extensions, functions, typedefs
+* with (mixins) and implements → Implements edges; extends → Inherits
+* Resolves relative imports to repo files; skips package: and dart: imports
+
+**LuaParser** — regex-based analysis of .lua files:
+
+* Extracts: require() calls, module() declarations, local/global functions, Module.func/Module:method patterns, assigned functions (M.func = function)
+* Resolves Lua require("a.b.c") to a/b/c.lua or a/b/c/init.lua
+
+**PerlParser** — regex-based analysis of .pl/.pm/.t files:
+
+* Extracts: use/require, package declarations, sub (subroutines), use constant, has (Moose/Moo attributes), @ISA/use parent/use base inheritance
+* Resolves use Foo::Bar to Foo/Bar.pm in repo
+* Handles POD documentation blocks and __END__/__DATA__ markers
+
+**RParser** — regex-based analysis of .r/.R/.Rmd files:
+
+* Extracts: library/require calls, source() calls, function assignments (name <- function), setClass/setRefClass/R6Class, setGeneric/setMethod
+* Detects inheritance via contains= (S4), inherit= (R6)
+* Resolves source() paths relative to current file
+
+**HaskellParser** — regex-based analysis of .hs/.lhs files:
+
+* Extracts: module declarations, import statements, data/newtype/type aliases, class (typeclass) definitions, instance declarations, top-level function type signatures and definitions
+* class → Interface nodes; instance → Implements edges
+* Supports literate Haskell (.lhs) files; resolves dot-separated module imports (Data.Map → Data/Map.hs)
+
+**ElixirParser** — regex-based analysis of .ex/.exs files:
+
+* Extracts: defmodule, defprotocol, defimpl, alias/import/use/require, def/defp/defmacro, defstruct, @behaviour
+* defprotocol → Interface nodes; defimpl Protocol for: Type → Implements edges; @behaviour → Implements edges
+* Resolves alias paths via CamelCase→snake_case conversion (MyApp.Accounts → my_app/accounts.ex)
 
 All parsers skip files over 1 MB (likely generated) and ignore standard directories (node_modules, bin, obj, .git, vendor, __pycache__, target, etc.).
 
@@ -264,7 +352,7 @@ Explorer (tabbed)
 * **Backend**: .NET 8, ASP.NET Core Web API, C#
 * **Frontend**: React 19, Vite 6, TypeScript 5.6, @xyflow/react 12
 * **Search**: BM25 in-memory inverted index
-* **Parsing**: Roslyn AST for C# (Microsoft.CodeAnalysis.CSharp 4.12), regex for JS/TS/Python/Java/Go
+* **Parsing**: Roslyn AST for C# (Microsoft.CodeAnalysis.CSharp 4.12), regex for JS/TS/Python/Java/Go/C/C++/Swift/Rust/SQL/Scala/Kotlin/PHP/Ruby/Dart/Lua/Perl/R/Haskell/Elixir
 * **Solution format**: .slnx (newer .NET solution format)
 
 ---
@@ -272,7 +360,6 @@ Explorer (tabbed)
 # Future Extensions
 
 * VS Code extension
-* Rust, Ruby, PHP parser implementations
 * Export capabilities (SVG, PNG, PDF, CSV)
 * WebSocket streaming (replace polling)
 * Repository comparison
