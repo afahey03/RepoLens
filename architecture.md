@@ -351,15 +351,61 @@ Explorer (tabbed)
 
 * **Backend**: .NET 8, ASP.NET Core Web API, C#
 * **Frontend**: React 19, Vite 6, TypeScript 5.6, @xyflow/react 12
+* **VS Code Extension**: TypeScript, webpack, VS Code Extension API (^1.85.0)
 * **Search**: BM25 in-memory inverted index
 * **Parsing**: Roslyn AST for C# (Microsoft.CodeAnalysis.CSharp 4.12), regex for JS/TS/Python/Java/Go/C/C++/Swift/Rust/SQL/Scala/Kotlin/PHP/Ruby/Dart/Lua/Perl/R/Haskell/Elixir
 * **Solution format**: .slnx (newer .NET solution format)
 
 ---
 
+# RepoLens.VSCode — VS Code Extension
+
+In-editor analysis panel with symbol navigation. Communicates with the RepoLens backend API.
+
+## Structure
+
+* `src/extension.ts` — Entry point (activate/deactivate), registers all commands and tree providers
+* `src/api.ts` — `RepoLensApi` HTTP client (Node http/https) reading the API base URL from VS Code settings
+* `src/types.ts` — TypeScript interfaces mirroring backend DTOs
+* `src/symbolTree.ts` — `SymbolTreeProvider` sidebar tree: groups up to 2000 symbols by file with click-to-navigate
+* `src/repoInfo.ts` — `RepoInfoProvider` sidebar tree: languages, symbols, frameworks, dependencies, graph stats
+* `src/overviewPanel.ts` — `OverviewPanel` webview: language bar, key types, modules, external deps
+* `src/architecturePanel.ts` — `ArchitecturePanel` webview: SVG force-directed graph with draggable nodes and double-click navigation
+* `src/searchPanel.ts` — `SearchPanel` webview: search box with kind filters, result table with click-to-navigate
+* `src/webviewUtil.ts` — Shared webview HTML skeleton with VS Code theme variables and CSP nonce
+
+## Commands
+
+| Command | Description |
+|---|---|
+| `repolens.analyzeRepo` | Prompt for a GitHub URL and analyze |
+| `repolens.analyzeWorkspace` | Detect git remote in workspace and analyze |
+| `repolens.showOverview` | Open the overview webview panel |
+| `repolens.showArchitecture` | Open the architecture graph webview |
+| `repolens.showSearch` | Open the search webview panel |
+| `repolens.refreshSymbols` | Reload the symbol tree |
+| `repolens.navigateToSymbol` | Open a file at a specific line |
+
+## Configuration (VS Code Settings)
+
+| Setting | Default | Description |
+|---|---|---|
+| `repolens.apiBaseUrl` | `http://localhost:5000` | RepoLens API server URL |
+| `repolens.gitHubToken` | (empty) | GitHub PAT for private repos |
+| `repolens.openAiApiKey` | (empty) | OpenAI API key for AI summaries |
+
+## Build
+
+```bash
+cd src/RepoLens.VSCode
+npm install
+npx webpack --mode production   # outputs dist/extension.js
+```
+
+---
+
 # Future Extensions
 
-* VS Code extension
 * Export capabilities (SVG, PNG, PDF, CSV)
 * WebSocket streaming (replace polling)
 * Repository comparison

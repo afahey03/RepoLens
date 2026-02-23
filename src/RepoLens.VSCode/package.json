@@ -1,0 +1,138 @@
+{
+    "name": "repolens",
+    "displayName": "RepoLens",
+    "description": "Instantly understand any GitHub repository — architecture graph, symbol navigation, and intelligent search right in VS Code.",
+    "version": "0.1.0",
+    "publisher": "repolens",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/repolens/repolens"
+    },
+    "engines": {
+        "vscode": "^1.85.0"
+    },
+    "categories": [
+        "Visualization",
+        "Other"
+    ],
+    "keywords": [
+        "repository",
+        "architecture",
+        "dependency graph",
+        "code analysis",
+        "symbol navigation"
+    ],
+    "activationEvents": [],
+    "main": "./dist/extension.js",
+    "icon": "media/icon.png",
+    "contributes": {
+        "commands": [
+            {
+                "command": "repolens.analyzeRepo",
+                "title": "RepoLens: Analyze GitHub Repository",
+                "icon": "$(search)"
+            },
+            {
+                "command": "repolens.analyzeWorkspace",
+                "title": "RepoLens: Analyze Current Workspace",
+                "icon": "$(folder-opened)"
+            },
+            {
+                "command": "repolens.showOverview",
+                "title": "RepoLens: Show Overview",
+                "icon": "$(info)"
+            },
+            {
+                "command": "repolens.showArchitecture",
+                "title": "RepoLens: Show Architecture Graph",
+                "icon": "$(type-hierarchy)"
+            },
+            {
+                "command": "repolens.showSearch",
+                "title": "RepoLens: Search Symbols",
+                "icon": "$(search)"
+            },
+            {
+                "command": "repolens.refreshSymbols",
+                "title": "RepoLens: Refresh Symbol Tree",
+                "icon": "$(refresh)"
+            }
+        ],
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "repolens",
+                    "title": "RepoLens",
+                    "icon": "media/repolens-icon.svg"
+                }
+            ]
+        },
+        "views": {
+            "repolens": [
+                {
+                    "id": "repolens.symbolTree",
+                    "name": "Symbols",
+                    "type": "tree"
+                },
+                {
+                    "id": "repolens.info",
+                    "name": "Repository Info",
+                    "type": "tree"
+                }
+            ]
+        },
+        "menus": {
+            "view/title": [
+                {
+                    "command": "repolens.refreshSymbols",
+                    "when": "view == repolens.symbolTree",
+                    "group": "navigation"
+                },
+                {
+                    "command": "repolens.analyzeRepo",
+                    "when": "view == repolens.info",
+                    "group": "navigation"
+                }
+            ]
+        },
+        "configuration": {
+            "title": "RepoLens",
+            "properties": {
+                "repolens.apiBaseUrl": {
+                    "type": "string",
+                    "default": "http://localhost:5000",
+                    "description": "Base URL of the RepoLens API server."
+                },
+                "repolens.gitHubToken": {
+                    "type": "string",
+                    "default": "",
+                    "description": "GitHub Personal Access Token for private repositories.",
+                    "scope": "application"
+                },
+                "repolens.openAiApiKey": {
+                    "type": "string",
+                    "default": "",
+                    "description": "OpenAI API key for AI-powered summaries.",
+                    "scope": "application"
+                }
+            }
+        }
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run build",
+        "build": "webpack --mode production",
+        "watch": "webpack --mode development --watch",
+        "lint": "eslint src --ext ts",
+        "package": "vsce package"
+    },
+    "devDependencies": {
+        "@types/node": "^20.11.0",
+        "@types/vscode": "^1.85.0",
+        "ts-loader": "^9.5.1",
+        "typescript": "^5.6.0",
+        "webpack": "^5.97.0",
+        "webpack-cli": "^6.0.0",
+        "@vscode/vsce": "^3.0.0"
+    }
+}
