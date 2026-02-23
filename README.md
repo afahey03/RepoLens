@@ -27,6 +27,8 @@ RepoLens analyzes public GitHub repositories and generates an interactive overvi
 
 <img width="1074" height="823" alt="image" src="https://github.com/user-attachments/assets/49c5a94a-62b1-43b1-9957-a70300718923" />
 
+<img width="1067" height="880" alt="Screenshot 2026-02-22 212409" src="https://github.com/user-attachments/assets/2622354d-35a8-4bb2-b1a5-489dcb18455d" />
+
 ---
 
 ## Tech Stack
