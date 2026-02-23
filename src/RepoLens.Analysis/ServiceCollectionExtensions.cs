@@ -12,7 +12,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddAnalysisServices(this IServiceCollection services)
     {
         services.AddHttpClient<IRepositoryDownloader, GitHubRepositoryDownloader>();
-        services.AddSingleton<ILanguageParser, CSharpParser>();
+        services.AddSingleton<ILanguageParser, RoslynCSharpParser>();
         services.AddSingleton<ILanguageParser, JavaScriptTypeScriptParser>();
         services.AddSingleton<ILanguageParser, PythonParser>();
         services.AddSingleton<ILanguageParser, JavaParser>();
