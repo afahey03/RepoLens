@@ -59,10 +59,11 @@ export class RepoInfoProvider implements vscode.TreeDataProvider<vscode.TreeItem
         }
 
         if (ctx === 'languages') {
-            return Object.entries(ov.languageLineBreakdown)
-                .sort(([, a], [, b]) => b - a)
+            const entries = Object.entries(ov.languageLineBreakdown).sort(([, a], [, b]) => b - a);
+            const totalLangLines = entries.reduce((sum, [, lines]) => sum + lines, 0);
+            return entries
                 .map(([lang, lines]) => {
-                    const pct = ov.totalLines > 0 ? ((lines / ov.totalLines) * 100).toFixed(1) : '0';
+                    const pct = totalLangLines > 0 ? ((lines / totalLangLines) * 100).toFixed(1) : '0';
                     return this.leaf(`${lang}: ${lines.toLocaleString()} lines (${pct}%)`);
                 });
         }

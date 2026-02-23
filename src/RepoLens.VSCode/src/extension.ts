@@ -6,6 +6,7 @@ import { RepoInfoProvider } from './repoInfo';
 import { OverviewPanel } from './overviewPanel';
 import { ArchitecturePanel } from './architecturePanel';
 import { SearchPanel } from './searchPanel';
+import { ApiServerManager } from './serverManager';
 import type { AnalyzeResponse, RepositoryOverview, ArchitectureResponse, GraphStatsResponse } from './types';
 
 /** State kept for the currently-analyzed repository. */
@@ -19,11 +20,14 @@ interface RepoSession {
 }
 
 let session: RepoSession | undefined;
+let serverManager: ApiServerManager | undefined;
 
 export function activate(context: vscode.ExtensionContext): void {
     const api = new RepoLensApi();
     const symbolTree = new SymbolTreeProvider(api);
     const repoInfo = new RepoInfoProvider();
+    serverManager = new ApiServerManager();
+    context.subscriptions.push(serverManager);
 
     // ── Register tree views ──
     context.subscriptions.push(
@@ -53,18 +57,24 @@ export function activate(context: vscode.ExtensionContext): void {
     // Analyze the currently opened workspace folder
     context.subscriptions.push(
         vscode.commands.registerCommand('repolens.analyzeWorkspace', async () => {
-            const folder = vscode.workspace.workspaceFolders?.[0];
-            if (!folder) {
-                vscode.window.showWarningMessage('No workspace folder open.');
-                return;
-            }
-            // Try to detect the git remote
+            const folder = await pickWorkspaceFolder();
+            if (!folder) { return; }
+
             const gitUrl = await detectGitRemote(folder.uri.fsPath);
             if (!gitUrl) {
-                vscode.window.showWarningMessage('Could not detect a git remote URL in this workspace.');
+                // No remote detected — offer to enter manually
+                const url = await vscode.window.showInputBox({
+                    prompt: 'No git remote found. Enter a GitHub repository URL manually.',
+                    placeHolder: 'https://github.com/owner/repo',
+                });
+                if (!url) { return; }
+                await analyzeRepository(api, symbolTree, repoInfo, url.trim(), folder.uri.fsPath);
                 return;
             }
-            await analyzeRepository(api, symbolTree, repoInfo, gitUrl, folder.uri.fsPath);
+
+            // Normalise SSH URLs → HTTPS
+            const httpsUrl = normalizeGitUrl(gitUrl);
+            await analyzeRepository(api, symbolTree, repoInfo, httpsUrl, folder.uri.fsPath);
         }),
     );
 
@@ -139,10 +149,17 @@ export function activate(context: vscode.ExtensionContext): void {
             },
         ),
     );
+
+    // ── Auto-prompt: offer to analyze when a workspace with a git remote is open ──
+    promptToAnalyzeWorkspace(api, symbolTree, repoInfo);
 }
 
 export function deactivate(): void {
     session = undefined;
+    if (serverManager) {
+        serverManager.stopServer();
+        serverManager = undefined;
+    }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -163,6 +180,17 @@ async function analyzeRepository(
     await vscode.window.withProgress(
         { location: vscode.ProgressLocation.Notification, title: 'RepoLens', cancellable: false },
         async (progress) => {
+            // Ensure the API server is running (auto-start if needed)
+            const autoStart = config.get<boolean>('autoStartServer', true);
+            if (autoStart && serverManager) {
+                progress.report({ message: 'Connecting to API server…' });
+                const running = await serverManager.ensureRunning();
+                if (!running) {
+                    vscode.window.showErrorMessage('RepoLens API server is not available. Start it manually or check settings.');
+                    return;
+                }
+            }
+
             progress.report({ message: 'Starting analysis…' });
 
             let analyzeResp: AnalyzeResponse;
@@ -286,4 +314,65 @@ async function detectGitRemote(cwd: string): Promise<string | undefined> {
         // not a git repo or git not installed
     }
     return undefined;
+}
+
+/**
+ * Normalize git remote URLs to HTTPS format.
+ * Converts SSH (git@github.com:owner/repo.git) → https://github.com/owner/repo
+ */
+function normalizeGitUrl(url: string): string {
+    let normalized = url.trim();
+    // SSH: git@github.com:owner/repo.git
+    const sshMatch = normalized.match(/^git@([^:]+):(.+?)(?:\.git)?$/);
+    if (sshMatch) {
+        return `https://${sshMatch[1]}/${sshMatch[2]}`;
+    }
+    // Strip trailing .git
+    normalized = normalized.replace(/\.git$/, '');
+    return normalized;
+}
+
+/**
+ * Let the user pick a workspace folder if multiple are open.
+ * Returns undefined if no folder is available or user cancelled.
+ */
+async function pickWorkspaceFolder(): Promise<vscode.WorkspaceFolder | undefined> {
+    const folders = vscode.workspace.workspaceFolders;
+    if (!folders || folders.length === 0) {
+        vscode.window.showWarningMessage('No workspace folder open.');
+        return undefined;
+    }
+    if (folders.length === 1) { return folders[0]; }
+
+    const picked = await vscode.window.showQuickPick(
+        folders.map((f) => ({ label: f.name, description: f.uri.fsPath, folder: f })),
+        { placeHolder: 'Select workspace folder to analyze' }
+    );
+    return picked?.folder;
+}
+
+/**
+ * On activation, if a workspace is open with a git remote, offer to analyze it.
+ */
+async function promptToAnalyzeWorkspace(
+    api: RepoLensApi,
+    symbolTree: SymbolTreeProvider,
+    repoInfo: RepoInfoProvider,
+): Promise<void> {
+    const folder = vscode.workspace.workspaceFolders?.[0];
+    if (!folder) { return; }
+
+    const gitUrl = await detectGitRemote(folder.uri.fsPath);
+    if (!gitUrl) { return; }
+
+    const repoName = gitUrl.replace(/.*[/:]([^/]+\/[^/]+?)(?:\.git)?$/, '$1');
+    const action = await vscode.window.showInformationMessage(
+        `RepoLens detected repository "${repoName}". Analyze it?`,
+        'Analyze',
+        'Dismiss',
+    );
+    if (action === 'Analyze') {
+        const httpsUrl = normalizeGitUrl(gitUrl);
+        await analyzeRepository(api, symbolTree, repoInfo, httpsUrl, folder.uri.fsPath);
+    }
 }

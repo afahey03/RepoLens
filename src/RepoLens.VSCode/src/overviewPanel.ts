@@ -68,17 +68,17 @@ export class OverviewPanel {
 
     private render(ov: RepositoryOverview, stats?: GraphStatsResponse): void {
         // ── Language bar ──
-        const total = ov.totalLines || 1;
         const sorted = Object.entries(ov.languageLineBreakdown).sort(([, a], [, b]) => b - a);
+        const totalLangLines = sorted.reduce((sum, [, lines]) => sum + lines, 0) || 1;
         const barSegments = sorted
             .map(([lang, lines]) => {
-                const pct = ((lines / total) * 100).toFixed(1);
+                const pct = ((lines / totalLangLines) * 100).toFixed(1);
                 return `<div style="width:${pct}%; background:${color(lang)};" title="${lang} ${pct}%"></div>`;
             })
             .join('');
         const langList = sorted
             .map(([lang, lines]) => {
-                const pct = ((lines / total) * 100).toFixed(1);
+                const pct = ((lines / totalLangLines) * 100).toFixed(1);
                 return `<span><span class="bar" style="width:10px;background:${color(lang)};"></span>${lang}: ${lines.toLocaleString()} (${pct}%)</span>`;
             })
             .join(' &nbsp;&middot;&nbsp; ');

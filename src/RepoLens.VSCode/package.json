@@ -104,6 +104,17 @@
                     "default": "http://localhost:5000",
                     "description": "Base URL of the RepoLens API server."
                 },
+                "repolens.apiProjectPath": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Path to the RepoLens.Api project directory. Used to auto-start the API server.",
+                    "scope": "machine"
+                },
+                "repolens.autoStartServer": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Automatically start the RepoLens API server if it is not running."
+                },
                 "repolens.gitHubToken": {
                     "type": "string",
                     "default": "",

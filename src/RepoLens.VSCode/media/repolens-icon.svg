@@ -1,13 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-  <!-- Magnifying glass with graph nodes -->
+  <!-- Magnifying glass -->
   <circle cx="11" cy="11" r="7" />
   <line x1="16.5" y1="16.5" x2="21" y2="21" />
-  <!-- Graph nodes inside lens -->
-  <circle cx="9" cy="9" r="1.2" fill="currentColor" />
-  <circle cx="13" cy="9" r="1.2" fill="currentColor" />
-  <circle cx="11" cy="13" r="1.2" fill="currentColor" />
-  <!-- Edges -->
-  <line x1="9.9" y1="9.6" x2="10.5" y2="12.2" />
-  <line x1="12.1" y1="9.6" x2="11.5" y2="12.2" />
-  <line x1="10" y1="9" x2="12" y2="9" />
+  <!-- </> code symbol inside the glass -->
+  <polyline points="9,9 6.5,11 9,13" stroke-width="1.6" />
+  <polyline points="13,9 15.5,11 13,13" stroke-width="1.6" />
+  <line x1="12" y1="8" x2="10" y2="14" stroke-width="1.2" />
 </svg>
