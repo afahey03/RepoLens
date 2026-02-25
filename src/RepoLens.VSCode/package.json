@@ -3,11 +3,13 @@
     "displayName": "RepoLens",
     "description": "Instantly understand any GitHub repository — architecture graph, symbol navigation, and intelligent search right in VS Code.",
     "version": "0.1.0",
-    "publisher": "repolens",
+    "author": "Aidan Fahey",
+    "publisher": "afahey03",
     "license": "MIT",
+    "homepage": "https://github.com/afahey03/RepoLens",
     "repository": {
         "type": "git",
-        "url": "https://github.com/repolens/repolens"
+        "url": "https://github.com/afahey03/RepoLens"
     },
     "engines": {
         "vscode": "^1.85.0"
@@ -73,12 +75,14 @@
                 {
                     "id": "repolens.symbolTree",
                     "name": "Symbols",
-                    "type": "tree"
+                    "type": "tree",
+                    "icon": "media/repolens-icon.svg"
                 },
                 {
                     "id": "repolens.info",
                     "name": "Repository Info",
-                    "type": "tree"
+                    "type": "tree",
+                    "icon": "media/repolens-icon.svg"
                 }
             ]
         },
