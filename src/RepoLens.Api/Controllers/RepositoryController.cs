@@ -347,16 +347,11 @@ public class RepositoryController : ControllerBase
     [HttpGet("{id}/search")]
     public ActionResult<SearchResponse> Search(
         string id,
-        [FromQuery] string q,
+        [FromQuery] string q = "",
         [FromQuery] string? kinds = null,
         [FromQuery] int skip = 0,
         [FromQuery] int take = 20)
     {
-        if (string.IsNullOrWhiteSpace(q))
-        {
-            return BadRequest("Query parameter 'q' is required.");
-        }
-
         if (!_cache.Has(id))
             return NotFound("Repository not analyzed yet.");
 

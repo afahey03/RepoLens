@@ -39,7 +39,7 @@ export class SymbolTreeProvider implements vscode.TreeDataProvider<SymbolTreeIte
         try {
             // Fetch a large batch of symbols (excluding imports for cleaner view)
             const kinds = ['Class', 'Interface', 'Function', 'Method', 'Property', 'Namespace', 'Module', 'Variable'];
-            const res: SearchResponse = await this.api.search(repoId, '*', kinds, 0, 2000);
+            const res: SearchResponse = await this.api.search(repoId, '', kinds, 0, 2000);
 
             for (const r of res.results) {
                 const key = r.filePath || '(unknown)';

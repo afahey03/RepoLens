@@ -61,6 +61,23 @@ public class SearchIndex
 
     public List<SearchResult> Search(string query, int maxResults)
     {
+        // Match-all: return all documents when query is empty or "*"
+        if (string.IsNullOrWhiteSpace(query) || query.Trim() == "*")
+        {
+            return _documents
+                .Take(maxResults)
+                .Select(doc => new SearchResult
+                {
+                    FilePath = doc.FilePath,
+                    Symbol = doc.Symbol,
+                    Snippet = doc.Content.Length > 200 ? doc.Content[..200] + "..." : doc.Content,
+                    Score = 1.0,
+                    Line = doc.Line,
+                    Kind = doc.Kind
+                })
+                .ToList();
+        }
+
         var queryTokens = Tokenize(query);
         var scores = new Dictionary<int, double>();
         var avgDocLength = _documents.Count > 0
