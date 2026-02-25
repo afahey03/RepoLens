@@ -36,6 +36,9 @@ RepoLens analyzes public (and private, with a PAT) GitHub repositories and gener
 
 <img width="1919" height="1031" alt="image" src="https://github.com/user-attachments/assets/4b1c6575-97af-4d1b-8742-48c805a43b12" />
 
+<img width="1557" height="973" alt="image" src="https://github.com/user-attachments/assets/3a750ea6-2e9a-4268-a168-0c966d58edd2" />
+
+
 
 ---
 
