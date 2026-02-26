@@ -1285,6 +1285,27 @@
     color: #71717a;
 }
 
+/* ── Footer ───────────────────────────────────────── */
+
+.app-footer {
+    text-align: center;
+    padding: 2rem 0 1rem;
+    margin-top: 3rem;
+    border-top: 1px solid #27272a;
+    color: #52525b;
+    font-size: 0.8rem;
+}
+
+.app-footer a {
+    color: #71717a;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.app-footer a:hover {
+    color: #a1a1aa;
+}
+
 /* ── PR Impact Panel ──────────────────────────────── */
 
 .pr-impact-panel {
