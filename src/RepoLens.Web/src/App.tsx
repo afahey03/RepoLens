@@ -285,7 +285,7 @@ function App() {
             </main>
 
             <footer className="app-footer">
-                <p>Built by <a href="https://github.com/afahey03" target="_blank" rel="noopener noreferrer">Aidan Fahey</a> &middot; <a href="https://github.com/afahey03/RepoLens" target="_blank" rel="noopener noreferrer">Open Source on GitHub</a></p>
+                <p>Built by <a href="https://aidanfahey.com/" target="_blank" rel="noopener noreferrer">Aidan Fahey</a> &middot; <a href="https://github.com/afahey03/RepoLens" target="_blank" rel="noopener noreferrer">Open Source on GitHub</a></p>
             </footer>
 
             <noscript>
