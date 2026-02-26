@@ -2,9 +2,11 @@
 
 **Understand any GitHub repository in seconds — right inside VS Code.**
 
-RepoLens analyzes GitHub repositories and gives you an interactive overview, architecture graph, symbol tree, and intelligent code search without leaving your editor.
+RepoLens analyzes GitHub repositories and gives you an interactive overview, architecture graph, symbol tree, and intelligent code search without leaving your editor. Powered by the live [repositorylens.com](https://www.repositorylens.com) API.
 
-<img width="1557" height="973" alt="image" src="https://github.com/user-attachments/assets/3a750ea6-2e9a-4268-a168-0c966d58edd2" />
+<p align="center">
+  <img alt="RepoLens in VS Code" src="https://github.com/user-attachments/assets/3a750ea6-2e9a-4268-a168-0c966d58edd2" style="max-width: 100%; border-radius: 8px;" />
+</p>
 
 ---
 
@@ -22,9 +24,6 @@ Browse all extracted symbols (classes, interfaces, functions, methods, propertie
 ### Code Search
 BM25-ranked search across all symbols with kind filtering. Find classes, functions, interfaces, and more instantly.
 
-### Auto-Start API Server
-The extension automatically discovers and starts the RepoLens API server — no manual setup required.
-
 ### Workspace Auto-Detection
 Detects Git repositories in your workspace and offers to analyze them on activation.
 
@@ -32,11 +31,14 @@ Detects Git repositories in your workspace and offers to analyze them on activat
 
 ## Getting Started
 
-1. Open a workspace that contains a Git repository
-2. The extension will prompt you to analyze it, or use the Command Palette:
+1. Install the extension from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=afahey03.repolens)
+2. Open a workspace that contains a Git repository
+3. The extension will prompt you to analyze it, or use the Command Palette:
    - **RepoLens: Analyze Current Workspace** — analyzes the repo in your open workspace
    - **RepoLens: Analyze GitHub Repository** — paste any GitHub URL to analyze
-3. Once analysis completes, explore via the **RepoLens** sidebar panel
+4. Once analysis completes, explore via the **RepoLens** sidebar panel
+
+The extension connects to the live API at [repositorylens.com](https://www.repositorylens.com) by default — no backend setup needed. For local development, set `repolens.apiBaseUrl` to your local server.
 
 ---
 
@@ -57,9 +59,9 @@ Detects Git repositories in your workspace and offers to analyze them on activat
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `repolens.apiBaseUrl` | `http://localhost:5000` | Base URL of the RepoLens API server |
-| `repolens.apiProjectPath` | _(empty)_ | Path to the RepoLens.Api project (for auto-start) |
-| `repolens.autoStartServer` | `true` | Automatically start the API server if not running |
+| `repolens.apiBaseUrl` | `https://www.repositorylens.com` | Base URL of the RepoLens API server |
+| `repolens.autoStartServer` | `true` | Auto-start a local API server (only applies when using localhost) |
+| `repolens.apiProjectPath` | _(empty)_ | Path to the RepoLens.Api project (for local auto-start) |
 | `repolens.gitHubToken` | _(empty)_ | GitHub PAT for private repositories |
 | `repolens.openAiApiKey` | _(empty)_ | OpenAI API key for AI-powered summaries |
 
@@ -71,15 +73,9 @@ RepoLens includes parsers for 21 languages: C#, TypeScript, JavaScript, Python, 
 
 ---
 
-## Requirements
-
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) (for the API server)
-- The RepoLens API backend (auto-started by the extension, or run manually)
-
----
-
 ## Links
 
+- [Live Web App](https://www.repositorylens.com)
 - [GitHub Repository](https://github.com/afahey03/RepoLens)
 - [Report Issues](https://github.com/afahey03/RepoLens/issues)
 
