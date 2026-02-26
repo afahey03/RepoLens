@@ -28,6 +28,17 @@
     margin-bottom: 0;
 }
 
+.github-link {
+    margin-left: auto;
+    color: #a1a1aa;
+    transition: color 0.2s;
+    flex-shrink: 0;
+}
+
+.github-link:hover {
+    color: #ffffff;
+}
+
 .app-header+.url-form {
     margin-top: 1.5rem;
 }
