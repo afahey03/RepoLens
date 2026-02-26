@@ -128,6 +128,15 @@ function App() {
                     <p className="subtitle">Understand any GitHub repository in seconds.</p>
                 </div>
                 <a
+                    href="https://marketplace.visualstudio.com/items?itemName=afahey03.repolens-vscode"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="vscode-link"
+                    title="Get the VS Code Extension"
+                >
+                    <span className="vscode-badge">VS Code Extension</span>
+                </a>
+                <a
                     href="https://github.com/afahey03/RepoLens"
                     target="_blank"
                     rel="noopener noreferrer"
