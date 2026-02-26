@@ -194,7 +194,7 @@ export class ApiServerManager implements vscode.Disposable {
     /* ── Utilities ───────────────────────────────────────── */
 
     private getBaseUrl(): string {
-        return vscode.workspace.getConfiguration('repolens').get<string>('apiBaseUrl', 'http://localhost:5000');
+        return vscode.workspace.getConfiguration('repolens').get<string>('apiBaseUrl', 'https://www.repositorylens.com');
     }
 
     private async promptForServerUrl(): Promise<void> {

@@ -180,9 +180,11 @@ async function analyzeRepository(
     await vscode.window.withProgress(
         { location: vscode.ProgressLocation.Notification, title: 'RepoLens', cancellable: false },
         async (progress) => {
-            // Ensure the API server is running (auto-start if needed)
+            // Ensure the API server is running (auto-start only for localhost)
             const autoStart = config.get<boolean>('autoStartServer', true);
-            if (autoStart && serverManager) {
+            const apiUrl = config.get<string>('apiBaseUrl', 'https://www.repositorylens.com');
+            const isLocal = apiUrl.includes('localhost') || apiUrl.includes('127.0.0.1');
+            if (autoStart && isLocal && serverManager) {
                 progress.report({ message: 'Connecting to API server…' });
                 const running = await serverManager.ensureRunning();
                 if (!running) {

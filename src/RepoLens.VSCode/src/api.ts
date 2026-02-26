@@ -19,7 +19,7 @@ import type {
 export class RepoLensApi {
     private getBaseUrl(): string {
         const config = vscode.workspace.getConfiguration('repolens');
-        return config.get<string>('apiBaseUrl', 'http://localhost:5000');
+        return config.get<string>('apiBaseUrl', 'https://www.repositorylens.com');
     }
 
     private getToken(): string | undefined {
