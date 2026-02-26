@@ -1,0 +1,32 @@
+name: Publish VS Code Extension
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/RepoLens.VSCode/**'
+
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/RepoLens.VSCode
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build extension
+        run: npm run build
+
+      - name: Publish to Marketplace
+        run: npx @vscode/vsce publish -p ${{ secrets.VSCE_PAT }}
