@@ -2,7 +2,7 @@
     "name": "repolens-vscode",
     "displayName": "RepoLens",
     "description": "Instantly understand any GitHub repository — architecture graph, symbol navigation, and intelligent search right in VS Code.",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "author": "Aidan Fahey",
     "publisher": "afahey03",
     "license": "MIT",
@@ -97,9 +97,39 @@
                     "command": "repolens.analyzeRepo",
                     "when": "view == repolens.info",
                     "group": "navigation"
+                },
+                {
+                    "command": "repolens.analyzeWorkspace",
+                    "when": "view == repolens.info",
+                    "group": "navigation"
+                },
+                {
+                    "command": "repolens.showOverview",
+                    "when": "view == repolens.info",
+                    "group": "navigation"
+                },
+                {
+                    "command": "repolens.showArchitecture",
+                    "when": "view == repolens.info",
+                    "group": "navigation"
+                },
+                {
+                    "command": "repolens.showSearch",
+                    "when": "view == repolens.info",
+                    "group": "navigation"
                 }
             ]
         },
+        "viewsWelcome": [
+            {
+                "view": "repolens.info",
+                "contents": "No repository analyzed yet.\n[$(folder-opened) Analyze Current Project](command:repolens.analyzeWorkspace)\n[$(search) Analyze GitHub URL](command:repolens.analyzeRepo)"
+            },
+            {
+                "view": "repolens.symbolTree",
+                "contents": "Analyze a repository to see its symbols.\n[$(folder-opened) Analyze Current Project](command:repolens.analyzeWorkspace)"
+            }
+        ],
         "configuration": {
             "title": "RepoLens",
             "properties": {

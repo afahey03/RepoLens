@@ -57,7 +57,7 @@ function miniMapNodeColor(node: Node): string {
 function ArchitectureGraphInner({ architecture, stats }: Props) {
     const [direction, setDirection] = useState<'TB' | 'LR'>('TB');
     const [hiddenNodeTypes, setHiddenNodeTypes] = useState<Set<string>>(new Set(['Folder']));
-    const [hiddenEdgeTypes, setHiddenEdgeTypes] = useState<Set<string>>(new Set(['Contains']));
+    const [hiddenEdgeTypes, setHiddenEdgeTypes] = useState<Set<string>>(new Set());
     const [selectedNode, setSelectedNode] = useState<GraphNodeDto | null>(null);
     const { fitView } = useReactFlow();
 

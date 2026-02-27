@@ -59,7 +59,7 @@ export class OverviewPanel {
             'repolens.overview',
             `RepoLens: ${overview.name}`,
             vscode.ViewColumn.One,
-            { enableScripts: false }
+            { enableScripts: true }
         );
 
         OverviewPanel.current = new OverviewPanel(panel);
@@ -129,6 +129,7 @@ export class OverviewPanel {
                     <div><span class="stat-value">${stats.maxDepth}</span><br/><span class="stat-label">Max Depth</span></div>
                 </div>
                 <div style="margin-top:8px;">${types}</div>
+                <button id="openGraph" style="margin-top:12px;padding:6px 16px;border:1px solid var(--vscode-button-border,#555);background:var(--vscode-button-background,#0e639c);color:var(--vscode-button-foreground,#fff);border-radius:4px;cursor:pointer;font-size:0.9em;">View Architecture Graph</button>
             </div>`;
         }
 
@@ -202,7 +203,25 @@ export class OverviewPanel {
         </div>
         `;
 
-        this.panel.webview.html = getWebviewContent(this.panel.webview, `RepoLens: ${ov.name}`, body);
+        const script = `
+(function() {
+    const vscode = acquireVsCodeApi();
+    const btn = document.getElementById('openGraph');
+    if (btn) {
+        btn.addEventListener('click', () => {
+            vscode.postMessage({ command: 'showArchitecture' });
+        });
+    }
+})();
+        `;
+
+        this.panel.webview.html = getWebviewContent(this.panel.webview, `RepoLens: ${ov.name}`, body, script);
+
+        this.panel.webview.onDidReceiveMessage((msg) => {
+            if (msg.command === 'showArchitecture') {
+                vscode.commands.executeCommand('repolens.showArchitecture');
+            }
+        });
     }
 }
 

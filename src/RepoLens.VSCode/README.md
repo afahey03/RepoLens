@@ -1,6 +1,6 @@
 # RepoLens for VS Code
 
-**Understand any GitHub repository in seconds — right inside VS Code.**
+**Understand any GitHub repository in seconds - right inside VS Code.**
 
 RepoLens analyzes GitHub repositories and gives you an interactive overview, architecture graph, symbol tree, and intelligent code search without leaving your editor. Powered by the live [repositorylens.com](https://www.repositorylens.com) API.
 
