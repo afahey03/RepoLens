@@ -2,7 +2,7 @@
     "name": "repolens-vscode",
     "displayName": "RepoLens",
     "description": "Instantly understand any GitHub repository — architecture graph, symbol navigation, and intelligent search right in VS Code.",
-    "version": "0.1.2",
+    "version": "0.1.3",
     "author": "Aidan Fahey",
     "publisher": "afahey03",
     "license": "MIT",
