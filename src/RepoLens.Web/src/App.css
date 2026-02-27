@@ -1538,3 +1538,363 @@
     padding: 3rem 2rem;
     color: #71717a;
 }
+
+/* ══════════════════════════════════════════════════════
+   Responsive — Tablet (≤768px)
+   ══════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+    .app {
+        padding: 1rem;
+    }
+
+    /* Header: stack logo/title row, then icons row */
+    .app-header {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .app-logo {
+        width: 36px;
+        height: 36px;
+    }
+
+    .app h1 {
+        font-size: 1.5rem;
+    }
+
+    .app .subtitle {
+        font-size: 0.85rem;
+    }
+
+    .vscode-link {
+        margin-left: auto;
+    }
+
+    .vscode-badge {
+        font-size: 0.7rem;
+        padding: 3px 8px;
+    }
+
+    /* URL form: stack on small screens */
+    .url-form {
+        flex-direction: column;
+    }
+
+    .url-form button {
+        width: 100%;
+    }
+
+    /* Tabs: scroll horizontally instead of wrapping */
+    .results-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+
+    .tabs {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .tabs button {
+        padding: 0.6rem 1rem;
+        font-size: 0.8rem;
+        white-space: nowrap;
+    }
+
+    .reanalyze-btn {
+        align-self: flex-end;
+    }
+
+    /* Overview: single column */
+    .overview {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    /* Architecture graph */
+    .architecture-graph {
+        height: 400px;
+    }
+
+    .architecture-body {
+        flex-direction: column;
+    }
+
+    .node-detail-panel {
+        width: 100%;
+        min-width: unset;
+        max-height: 300px;
+        border-radius: 0 0 0.75rem 0.75rem;
+        border-left: 1px solid #27272a;
+        border-top: none;
+    }
+
+    /* Graph toolbar: tighter */
+    .graph-toolbar {
+        gap: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.75rem;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .toolbar-stats {
+        margin-left: 0;
+    }
+
+    /* Graph legend: wrap */
+    .graph-legend {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    /* Graph stats bar */
+    .graph-stats-bar {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        padding: 0.4rem 0.75rem;
+    }
+
+    /* Search */
+    .kind-filters {
+        gap: 0.3rem;
+    }
+
+    .kind-chip {
+        padding: 0.2rem 0.5rem;
+        font-size: 0.7rem;
+    }
+
+    .search-examples {
+        gap: 0.3rem;
+    }
+
+    /* PR Impact */
+    .pr-input-form {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .pr-number-input {
+        width: 100%;
+    }
+
+    .pr-input-form button {
+        width: 100%;
+    }
+
+    .pr-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+    }
+
+    .pr-file-header {
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
+    }
+
+    .pr-file-path {
+        min-width: 0;
+        font-size: 0.8rem;
+    }
+
+    .pr-symbol-list {
+        padding-left: 1.25rem;
+    }
+
+    /* Footer */
+    .app-footer {
+        margin-top: 2rem;
+        padding: 1.5rem 0 0.75rem;
+    }
+}
+
+/* ══════════════════════════════════════════════════════
+   Responsive — Small phones (≤480px)
+   ══════════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+
+    .app {
+        padding: 0.75rem;
+    }
+
+    /* Header: 2-row layout */
+    .app-header {
+        gap: 0.4rem;
+    }
+
+    .app-logo {
+        width: 32px;
+        height: 32px;
+    }
+
+    .app h1 {
+        font-size: 1.25rem;
+    }
+
+    .app .subtitle {
+        font-size: 0.75rem;
+    }
+
+    .vscode-badge {
+        font-size: 0.65rem;
+        padding: 2px 6px;
+    }
+
+    .github-link svg {
+        width: 22px;
+        height: 22px;
+    }
+
+    /* URL form */
+    .url-form input {
+        font-size: 0.9rem;
+        padding: 0.65rem 0.75rem;
+    }
+
+    .url-form button {
+        font-size: 0.9rem;
+        padding: 0.65rem 1rem;
+    }
+
+    /* Tabs: smaller touch targets */
+    .tabs button {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.75rem;
+    }
+
+    /* Overview cards */
+    .overview-card {
+        padding: 1rem;
+    }
+
+    .overview-card .value {
+        font-size: 1.25rem;
+    }
+
+    .overview-card h3 {
+        font-size: 0.7rem;
+    }
+
+    /* Architecture */
+    .architecture-graph {
+        height: 300px;
+    }
+
+    .graph-node {
+        min-width: 120px;
+        max-width: 160px;
+        padding: 6px 8px;
+    }
+
+    .graph-node-label {
+        font-size: 10px;
+    }
+
+    .graph-node-path {
+        font-size: 8px;
+    }
+
+    /* Node detail panel */
+    .node-detail-panel {
+        max-height: 250px;
+        padding: 0.75rem;
+    }
+
+    /* Search */
+    .search-input-wrapper {
+        padding: 0.4rem 0.75rem;
+    }
+
+    .search-input {
+        font-size: 0.85rem;
+    }
+
+    .file-group-path {
+        font-size: 0.7rem;
+    }
+
+    .result-symbol {
+        font-size: 0.8rem;
+    }
+
+    .result-snippet {
+        font-size: 0.7rem;
+    }
+
+    .search-welcome-icon {
+        font-size: 2rem;
+    }
+
+    .search-welcome h3 {
+        font-size: 0.95rem;
+    }
+
+    .search-welcome p {
+        font-size: 0.8rem;
+    }
+
+    /* PR Impact */
+    .pr-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .pr-stat-value {
+        font-size: 1.25rem;
+    }
+
+    .pr-stat-label {
+        font-size: 0.7rem;
+    }
+
+    .pr-file-header {
+        font-size: 0.75rem;
+        padding: 0.4rem 0.5rem;
+    }
+
+    .pr-file-delta {
+        font-size: 0.7rem;
+    }
+
+    .pr-symbol-item {
+        font-size: 0.7rem;
+    }
+
+    .pr-downstream-item {
+        font-size: 0.7rem;
+        padding: 0.4rem 0.75rem;
+    }
+
+    /* Empty state */
+    .empty-state {
+        padding: 2.5rem 1rem;
+    }
+
+    /* Token section */
+    .token-input {
+        font-size: 0.8rem;
+    }
+
+    .token-hint {
+        font-size: 0.7rem;
+    }
+
+    /* Pagination */
+    .search-pagination {
+        gap: 0.5rem;
+    }
+
+    .search-pagination button {
+        padding: 0.3rem 0.75rem;
+        font-size: 0.75rem;
+    }
+}
